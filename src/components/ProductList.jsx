@@ -16,7 +16,7 @@ function ProductList() {
         };
 
         // Esto en produccion do puede estar, se debe guardar en localStorage
-        headers['Authorization'] = `Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJjaWNlcmNoaWFicnVub0BnbWFpbC5jb20iLCJpYXQiOjE3NjAzOTU5MDMsImV4cCI6MTc2MDQ4MjMwM30.1YIfiB1EHvKrLEaqzBT-hbMvh8IzrqU28u3-9UudzcNbgyNdAoXQHT3JH68eDTGQcTKCTEYNAfMb4h52f4yLIQ`;
+        headers['Authorization'] = `Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbkBkZW1vLmNvbSIsImlhdCI6MTc2MDQ2NzYwNiwiZXhwIjoxNzYwNTU0MDA2fQ.-yy8Sjyi64vOqY2PmyfvQx9e-3xULvpeau8A9I3aADKzm5OZPO6quv-cdpKIptdbUP7EBk7oMtfmn9N9j5G6iw`;
         
         //Se define el endpoint de la API al que se quiere acceder
         const response = await fetch('http://localhost:8080/listings?page=0&size=20', {
