@@ -1,145 +1,256 @@
-import React, { useEffect, useMemo, useState } from 'react';
+// src/pages/Carrito.jsx
+import React, { useEffect, useState } from "react";
+import { getMyCart, updateQtyMe, removeItemMe, clearMyCart } from "../api/cart";
+import { authHeaders } from "../lib/auth";
 
-function formatMoney(n) {
-  if (n == null) return '$0';
-  const num = typeof n === 'number' ? n : Number(n);
-  return `$${num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-function Carrito() {
+export default function Carrito() {
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState(null);
+  const [working, setWorking] = useState(null);
+  const [error, setError] = useState(null);
+  const [metaByListing, setMetaByListing] = useState({});
 
-  const API_URL = "http://localhost:8080";
-  const TOKEN = "Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbkBkZW1vLmNvbSIsImlhdCI6MTc2MDQ2NzYwNiwiZXhwIjoxNzYwNTU0MDA2fQ.-yy8Sjyi64vOqY2PmyfvQx9e-3xULvpeau8A9I3aADKzm5OZPO6quv-cdpKIptdbUP7EBk7oMtfmn9N9j5G6iw"; 
-  const CART_ID = 8;
-
-  async function getCart(cartId) {
-    const res = await fetch(`${API_URL}/carts/${cartId}`, {
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": TOKEN,
-      },
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Error ${res.status}: ${text || res.statusText}`);
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getMyCart();
+      setCart(data);
+    } catch (e) {
+      setError(e.message || "No se pudo cargar el carrito");
+    } finally {
+      setLoading(false);
     }
-    return res.json();
   }
 
+  useEffect(() => { load(); }, []);
+
+  async function inc(listingId, current) {
+    setWorking(listingId);
+    setError(null);
+    try {
+      const data = await updateQtyMe(listingId, current + 1);
+      setCart(data);
+    } catch (e) {
+      setError(e.message || "No se pudo actualizar la cantidad");
+    } finally {
+      setWorking(null);
+    }
+  }
+
+  async function dec(listingId, current) {
+    if (current <= 1) return;
+    setWorking(listingId);
+    setError(null);
+    try {
+      const data = await updateQtyMe(listingId, current - 1);
+      setCart(data);
+    } catch (e) {
+      setError(e.message || "No se pudo actualizar la cantidad");
+    } finally {
+      setWorking(null);
+    }
+  }
+
+  async function remove(listingId) {
+    setWorking(listingId);
+    setError(null);
+    try {
+      const data = await removeItemMe(listingId);
+      setCart(data);
+    } catch (e) {
+      setError(e.message || "No se pudo eliminar el item");
+    } finally {
+      setWorking(null);
+    }
+  }
+
+  async function clearAll() {
+    setWorking("clear");
+    setError(null);
+    try {
+      const data = await clearMyCart();
+      setCart(data);
+    } catch (e) {
+      setError(e.message || "No se pudo vaciar el carrito");
+    } finally {
+      setWorking(null);
+    }
+  }
+
+  // === Enriquecer productos del carrito con brand, model y variant ===
   useEffect(() => {
+    if (!cart?.items?.length) {
+      setMetaByListing({});
+      return;
+    }
+
     (async () => {
+      const headers = authHeaders({ "Content-Type": "application/json" });
       try {
-        setLoading(true);
-        setErr(null);
-        const data = await getCart(CART_ID);
-        setCart(data);
-      } catch (e) {
-        setErr(e.message || 'Error cargando el carrito');
-      } finally {
-        setLoading(false);
+        const entries = await Promise.all(
+          cart.items.map(async (it) => {
+            try {
+              const lRes = await fetch(`http://localhost:8080/listings/${it.listingId}`, { headers });
+              if (!lRes.ok) return [it.listingId, null];
+              const listing = await lRes.json();
+
+              const vRes = await fetch(`http://localhost:8080/variants/${listing.variantId}`, { headers });
+              const variant = vRes.ok ? await vRes.json() : null;
+
+              let model = null, brand = null;
+              if (variant?.deviceModelId) {
+                const mRes = await fetch(`http://localhost:8080/device-models/${variant.deviceModelId}`, { headers });
+                model = mRes.ok ? await mRes.json() : null;
+                if (model?.brandId) {
+                  const bRes = await fetch(`http://localhost:8080/brands/${model.brandId}`, { headers });
+                  brand = bRes.ok ? await bRes.json() : null;
+                }
+              }
+
+              return [it.listingId, { listing, variant, model, brand }];
+            } catch {
+              return [it.listingId, null];
+            }
+          })
+        );
+        setMetaByListing(Object.fromEntries(entries));
+      } catch {
+        // ignoramos errores
       }
     })();
-  }, []);
+  }, [cart]);
 
-  const items = cart?.items ?? [];
-  const subtotal = useMemo(
-    () => items.reduce((acc, it) => acc + Number(it.subtotal ?? (it.unitPrice * it.quantity) ?? 0), 0),
-    [items]
-  );
-  const total = cart?.total ?? subtotal;
+  if (loading) return <div className="max-w-7xl mx-auto px-4 py-8">Cargando carrito…</div>;
 
-  // === Render ===
+  const items = cart?.items || [];
+  const total = cart?.total ?? 0;
+
+  const conditionLabel = (c) =>
+    c === "NEW" ? "Nuevo" :
+    c === "REFURB" ? "Reacondicionado" :
+    c === "USED" ? "Usado" : c;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-brand-dark to-brand-dark-700">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
-        <div className="mb-12 sm:mb-16">
-          <div className="flex justify-center mb-6">
-            <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-brand-contrast/10 border border-brand-contrast/30 text-brand-contrast text-xs sm:text-sm font-medium tracking-wide">
-              CARRITO
-            </span>
-          </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-brand-light mb-4 text-center leading-tight tracking-tight">
-            🛒 Carrito de Compras
-          </h1>
-        </div>
-
-        {loading && <div className="text-center text-brand-light/80">Cargando carrito…</div>}
-        {!loading && err && <div className="text-center text-red-400">{err}</div>}
-
-        {!loading && !err && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-            {/* Productos */}
-            <div className="lg:col-span-2 bg-brand-light rounded-xl shadow-lg p-8 sm:p-12 text-center border-2 border-brand-contrast/20">
-              {items.length === 0 ? (
-                <div className="max-w-md mx-auto">
-                  <div className="text-6xl mb-6">🛒</div>
-                  <p className="text-xl sm:text-2xl font-semibold text-brand-dark mb-4">
-                    Tu carrito está vacío
-                  </p>
-                  <p className="text-base sm:text-lg text-brand-dark-400 mb-6">
-                    ¡Agrega productos desde nuestra sección de Productos!
-                  </p>
-                  <button
-                    className="bg-brand-contrast text-brand-light px-6 py-3 rounded-lg font-medium hover:bg-brand-contrast-600 transition-all duration-300 hover:shadow-lg hover:shadow-brand-contrast/30"
-                    onClick={() => (window.location.href = '/productos')}
-                  >
-                    Ver Productos
-                  </button>
-                </div>
-              ) : (
-                <ul className="text-left divide-y divide-brand-dark/10">
-                  {items.map((it) => (
-                    <li key={it.itemId} className="py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div className="flex-1">
-                        <p className="font-semibold text-brand-dark">{it.title || `Producto #${it.listingId}`}</p>
-                        <p className="text-sm text-brand-dark-400">
-                          Precio: {formatMoney(it.unitPrice)} · Cantidad: {it.quantity}
-                        </p>
-                        <p className="text-sm text-brand-dark-400">
-                          Subtotal: {formatMoney(it.subtotal ?? it.unitPrice * it.quantity)}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            {/* Resumen */}
-            <div className="bg-brand-light rounded-xl shadow-lg p-6 sm:p-8 h-fit sticky top-20 border-2 border-brand-contrast/20">
-              <h3 className="text-xl sm:text-2xl font-bold text-brand-dark mb-6">
-                Resumen de compra
-              </h3>
-              <div className="space-y-4 mb-6">
-                <div className="flex justify-between items-center pb-4 border-b border-brand-dark/10">
-                  <span className="text-base sm:text-lg text-brand-dark-400">Subtotal:</span>
-                  <span className="text-base sm:text-lg font-semibold text-brand-dark">{formatMoney(subtotal)}</span>
-                </div>
-                <div className="flex justify-between items-center pb-4 border-b border-brand-dark/10">
-                  <span className="text-base sm:text-lg text-brand-dark-400">Envío:</span>
-                  <span className="text-base sm:text-lg font-semibold text-brand-contrast">Gratis</span>
-                </div>
-                <div className="flex justify-between items-center pt-2">
-                  <span className="text-lg sm:text-xl font-bold text-brand-dark">Total:</span>
-                  <span className="text-lg sm:text-xl font-bold text-brand-button">{formatMoney(total)}</span>
-                </div>
-              </div>
-
-              <button 
-                disabled={items.length === 0}
-                className="w-full bg-brand-button text-brand-light font-semibold py-3 sm:py-4 px-6 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-brand-button-600 text-sm sm:text-base"
-              >
-                Proceder al pago
-              </button>
-            </div>
-          </div>
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-brand-dark">Tu carrito</h1>
+        {items.length > 0 && (
+          <button
+            onClick={clearAll}
+            disabled={working === "clear"}
+            className="px-4 py-2 rounded-xl border border-brand-dark/20 text-brand-dark hover:bg-brand-dark/10 disabled:opacity-60"
+          >
+            {working === "clear" ? "Vaciando…" : "Vaciar carrito"}
+          </button>
         )}
       </div>
+
+      {error && (
+        <div className="mb-4 rounded-lg bg-red-50 text-red-700 px-4 py-3 border border-red-200">
+          {error}
+        </div>
+      )}
+
+      {items.length === 0 ? (
+        <div className="rounded-2xl bg-white border border-gray-100 p-8 text-center text-brand-dark/70">
+          Tu carrito está vacío.
+        </div>
+      ) : (
+        <div className="rounded-2xl bg-white border border-gray-100 overflow-hidden">
+          <table className="min-w-full">
+            <thead className="bg-brand-light/50">
+              <tr>
+                <th className="text-left p-4 text-sm text-brand-dark/70 font-medium">Producto</th>
+                <th className="text-right p-4 text-sm text-brand-dark/70 font-medium">Precio</th>
+                <th className="text-center p-4 text-sm text-brand-dark/70 font-medium">Cantidad</th>
+                <th className="text-right p-4 text-sm text-brand-dark/70 font-medium">Subtotal</th>
+                <th className="p-4"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map(it => {
+                const meta = metaByListing[it.listingId];
+                const brandName = meta?.brand?.name;
+                const modelName = meta?.model?.modelName;
+                const v = meta?.variant;
+
+                return (
+                  <tr key={it.itemId} className="border-t border-gray-100">
+                    <td className="p-4">
+                      {brandName || modelName || it.title ? (
+                        <div>
+                          <div className="text-brand-dark font-semibold leading-snug">
+                            {brandName || ""}{brandName && modelName ? " " : ""}{modelName || ""}
+                          </div>
+                          <div className="text-sm text-brand-dark/70">
+                            {[
+                              v?.ram ? `${v.ram}GB RAM` : null,
+                              v?.storage ? `${v.storage}GB` : null,
+                              v?.color || null,
+                              v?.condition ? conditionLabel(v.condition) : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-brand-dark font-semibold leading-snug">
+                          Producto #{it.listingId}
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="p-4 text-right">${Number(it.unitPrice).toFixed(2)}</td>
+
+                    <td className="p-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => dec(it.listingId, it.quantity)}
+                          disabled={working === it.listingId || it.quantity <= 1}
+                          className="w-8 h-8 rounded-lg border border-brand-dark/20 hover:bg-brand-dark/10 disabled:opacity-60"
+                        >
+                          −
+                        </button>
+                        <span className="w-8 text-center">{it.quantity}</span>
+                        <button
+                          onClick={() => inc(it.listingId, it.quantity)}
+                          disabled={working === it.listingId}
+                          className="w-8 h-8 rounded-lg border border-brand-dark/20 hover:bg-brand-dark/10 disabled:opacity-60"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </td>
+
+                    <td className="p-4 text-right">${Number(it.subtotal).toFixed(2)}</td>
+
+                    <td className="p-4 text-right">
+                      <button
+                        onClick={() => remove(it.listingId)}
+                        disabled={working === it.listingId}
+                        className="px-3 py-2 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-60"
+                      >
+                        Quitar
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+
+            <tfoot>
+              <tr className="border-t border-gray-100">
+                <td colSpan={3} className="p-4 text-right font-semibold text-brand-dark">Total</td>
+                <td className="p-4 text-right font-bold text-brand-contrast">
+                  ${Number(total).toFixed(2)}
+                </td>
+                <td className="p-4"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
-
-export default Carrito;
