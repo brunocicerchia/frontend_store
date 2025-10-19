@@ -1,26 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { authHeaders } from "../lib/auth";
+import { authFetch } from "../lib/auth";
 
 function ProductList() {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  
   useEffect(() => {
     const fetchListings = async () => {
       try {
         setLoading(true);
         
         // Configurar headers con el token Bearer
-        const headers = {
-          'Content-Type': 'application/json',
-        };
+        const headers = authHeaders({ "Content-Type": "application/json" });
 
-<<<<<<< Updated upstream
-        // Esto en produccion do puede estar, se debe guardar en localStorage
-        headers['Authorization'] = `Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbkBkZW1vLmNvbSIsImlhdCI6MTc2MDQ2NzYwNiwiZXhwIjoxNzYwNTU0MDA2fQ.-yy8Sjyi64vOqY2PmyfvQx9e-3xULvpeau8A9I3aADKzm5OZPO6quv-cdpKIptdbUP7EBk7oMtfmn9N9j5G6iw`;
-=======
-        headers['Authorization'] = `Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJjaWNlcmNoaWFicnVub0BnbWFpbC5jb20iLCJpYXQiOjE3NjAzOTU5MDMsImV4cCI6MTc2MDQ4MjMwM30.1YIfiB1EHvKrLEaqzBT-hbMvh8IzrqU28u3-9UudzcNbgyNdAoXQHT3JH68eDTGQcTKCTEYNAfMb4h52f4yLIQ`;
->>>>>>> Stashed changes
-        
         // 1. Obtener listings
         const response = await fetch('http://localhost:8080/listings?page=0&size=20', {
           method: 'GET',
