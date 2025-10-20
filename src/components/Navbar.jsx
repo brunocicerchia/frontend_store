@@ -1,11 +1,37 @@
 // src/components/Navbar.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getUser } from "../lib/auth";
+import { getMyCart } from "../api/cart";
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [cartItemCount, setCartItemCount] = useState(0);
   const user = getUser();
+  
+  useEffect(() => {
+    const fetchCartCount = async () => {
+      if (user) {
+        try {
+          const cart = await getMyCart();
+          const totalItems = cart.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+          setCartItemCount(totalItems);
+        } catch (err) {
+          console.error('Error fetching cart:', err);
+          setCartItemCount(0);
+        }
+      }
+    };
+
+    fetchCartCount();
+    
+    // Actualizar el conteo cada 30 segundos si el usuario está logueado
+    const interval = user ? setInterval(fetchCartCount, 5000) : null;
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [user]);
   
   return (
   <nav className="bg-brand-light shadow-md sticky top-0 z-50 border-b border-brand-dark/10">
@@ -23,7 +49,6 @@ function Navbar() {
           {[
             { to: "/", label: "Inicio" },
             { to: "/productos", label: "Productos" },
-            { to: "/carrito", label: "Carrito" },
             { to: "/nosotros", label: "Nosotros" },
             { to: "/contacto", label: "Contacto" }
           ].map((link) => (
@@ -36,6 +61,34 @@ function Navbar() {
               </Link>
             </li>
           ))}
+
+          {/* Ícono del carrito con badge */}
+          <li>
+            <Link
+              to="/carrito"
+              className="relative text-brand-dark px-3 lg:px-4 py-2 rounded-md font-medium hover:bg-brand-dark/10 transition-all duration-200 hover:-translate-y-0.5 inline-flex items-center"
+              title="Carrito de compras"
+            >
+              <svg 
+                className="w-6 h-6" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+                strokeWidth="2"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" 
+                />
+              </svg>
+              {cartItemCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                  {cartItemCount > 9 ? '9+' : cartItemCount}
+                </span>
+              )}
+            </Link>
+          </li>
 
           <li className="ml-3">
             {user ? (
@@ -94,7 +147,6 @@ function Navbar() {
           {[
             { to: "/", label: "Inicio" },
             { to: "/productos", label: "Productos" },
-            { to: "/carrito", label: "Carrito" },
             { to: "/dashboard", label: "Dashboard" },
             { to: "/nosotros", label: "Nosotros" },
             { to: "/contacto", label: "Contacto" },
@@ -109,6 +161,37 @@ function Navbar() {
               </Link>
             </li>
           ))}
+
+          {/* Carrito en móvil */}
+          <li>
+            <Link 
+              to="/carrito"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center justify-between text-brand-dark px-4 py-2 rounded-md font-medium hover:bg-brand-dark/10 transition-colors duration-300"
+            >
+              <span className="flex items-center gap-2">
+                <svg 
+                  className="w-5 h-5" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" 
+                  />
+                </svg>
+                Carrito
+              </span>
+              {cartItemCount > 0 && (
+                <span className="bg-red-500 text-white text-xs font-bold rounded-full px-2 py-0.5">
+                  {cartItemCount > 9 ? '9+' : cartItemCount}
+                </span>
+              )}
+            </Link>
+          </li>
 
           <li className="border-t border-brand-dark/10 mt-2 pt-2">
             <Link 

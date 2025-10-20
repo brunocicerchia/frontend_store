@@ -203,7 +203,7 @@ function ProductList() {
                 disabled={listing.stock === 0 || !listing.active || addingToCart === listing.id}
               >
                 {addingToCart === listing.id ? '🛒 Agregando...' : 
-                 listing.stock > 0 && listing.active ? '🛒 Agregar al carrito' : 
+                 listing.stock > 0 && listing.active ? 'Agregar al carrito' : 
                  'No disponible'}
               </button>
             </div>
