@@ -8,11 +8,13 @@ export default function Carrito() {
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(null);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [metaByListing, setMetaByListing] = useState({});
 
   async function load() {
     setLoading(true);
     setError(null);
+    // ⚠️ NO limpiar success acá, así el mensaje persiste tras recargar el carrito
     try {
       const data = await getMyCart();
       setCart(data);
@@ -78,7 +80,33 @@ export default function Carrito() {
     }
   }
 
-  // === Enriquecer productos del carrito con brand, model y variant ===
+  // === Checkout ===
+  async function handleCheckout() {
+    setWorking("checkout");
+    setError(null);
+    // no tocamos success acá
+    try {
+      const res = await fetch("http://localhost:8080/orders/me/checkout", {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+      });
+      if (!res.ok) {
+        const msg = await res.text().catch(() => null);
+        throw new Error(msg || "No se pudo completar el checkout");
+      }
+      const order = await res.json();
+      await load(); // primero refrescamos el carrito vacío (conservado)
+      setSuccess({ number: order.orderNumber, total: order.grandTotal }); // luego mostramos el aviso
+      // Ocultar mensaje después de 6s
+      setTimeout(() => setSuccess(null), 6000);
+    } catch (e) {
+      setError(e.message || "No se pudo crear la orden");
+    } finally {
+      setWorking(null);
+    }
+  }
+
+  // === Enriquecer productos con brand/model/variant para mostrar info linda ===
   useEffect(() => {
     if (!cart?.items?.length) {
       setMetaByListing({});
@@ -116,7 +144,7 @@ export default function Carrito() {
         );
         setMetaByListing(Object.fromEntries(entries));
       } catch {
-        // ignoramos errores
+        // ignoramos errores de enriquecimiento
       }
     })();
   }, [cart]);
@@ -146,9 +174,19 @@ export default function Carrito() {
         )}
       </div>
 
+      {/* Mensajes visuales en la interfaz */}
       {error && (
         <div className="mb-4 rounded-lg bg-red-50 text-red-700 px-4 py-3 border border-red-200">
           {error}
+        </div>
+      )}
+      {success && (
+        <div className="mb-4 rounded-lg bg-green-50 text-green-700 px-4 py-3 border border-green-200">
+          <p className="font-semibold">✅ Orden creada correctamente</p>
+          <p className="text-sm">
+            <span className="font-medium">Número:</span> {success.number} ·{" "}
+            <span className="font-medium">Total:</span> ${Number(success.total).toFixed(2)}
+          </p>
         </div>
       )}
 
@@ -178,27 +216,19 @@ export default function Carrito() {
                 return (
                   <tr key={it.itemId} className="border-t border-gray-100">
                     <td className="p-4">
-                      {brandName || modelName || it.title ? (
-                        <div>
-                          <div className="text-brand-dark font-semibold leading-snug">
-                            {brandName || ""}{brandName && modelName ? " " : ""}{modelName || ""}
-                          </div>
-                          <div className="text-sm text-brand-dark/70">
-                            {[
-                              v?.ram ? `${v.ram}GB RAM` : null,
-                              v?.storage ? `${v.storage}GB` : null,
-                              v?.color || null,
-                              v?.condition ? conditionLabel(v.condition) : null,
-                            ]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-brand-dark font-semibold leading-snug">
-                          Producto #{it.listingId}
-                        </div>
-                      )}
+                      <div className="text-brand-dark font-semibold leading-snug">
+                        {brandName || ""}{brandName && modelName ? " " : ""}{modelName || ""}
+                      </div>
+                      <div className="text-sm text-brand-dark/70">
+                        {[
+                          v?.ram ? `${v.ram}GB RAM` : null,
+                          v?.storage ? `${v.storage}GB` : null,
+                          v?.color || null,
+                          v?.condition ? conditionLabel(v.condition) : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </div>
                     </td>
 
                     <td className="p-4 text-right">${Number(it.unitPrice).toFixed(2)}</td>
@@ -249,6 +279,17 @@ export default function Carrito() {
               </tr>
             </tfoot>
           </table>
+
+          {/* Botón de checkout */}
+          <div className="flex justify-end p-4 border-t border-gray-100 bg-white">
+            <button
+              onClick={handleCheckout}
+              disabled={items.length === 0 || working === "checkout"}
+              className="bg-brand-button text-brand-light font-semibold py-3 px-6 rounded-lg hover:bg-brand-button-600 disabled:opacity-50"
+            >
+              {working === "checkout" ? "Procesando…" : "Proceder al pago"}
+            </button>
+          </div>
         </div>
       )}
     </div>
