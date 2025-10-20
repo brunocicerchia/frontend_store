@@ -9,9 +9,9 @@ import Nosotros from './pages/Nosotros';
 import Contacto from './pages/Contacto';
 import './App.css';
 import LoginPageComp from "./components/LoginPageComp";
-import { getToken } from "./lib/auth"; // 👈 o "../lib/auth" según tu estructura real
-// Si tu archivo está en src/lib/auth.js y App.jsx está en src/, entonces:
-/// import { getToken } from "./lib/auth";
+import { getToken } from "./lib/auth"; 
+import MisOrdenes from "./components/MyOrders";
+import Cuenta from "./components/Account";
 
 function App() {
   const isAuth = !!getToken();
@@ -23,13 +23,11 @@ function App() {
 
         <Routes>
           {!isAuth ? (
-            // 🔒 No autenticado: solo /login y todo lo demás redirige a /login
             <>
               <Route path="/login" element={<LoginPageComp />} />
               <Route path="*" element={<Navigate to="/login" replace />} />
             </>
           ) : (
-            // ✅ Autenticado: todas las rutas privadas y /login redirige a /
             <>
               <Route path="/" element={<Home />} />
               <Route path="/productos" element={<Productos />} />
@@ -38,6 +36,8 @@ function App() {
               <Route path="/contacto" element={<Contacto />} />
               <Route path="/login" element={<Navigate to="/" replace />} />
               <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="/ordenes" element={<MisOrdenes />} />
+              <Route path="/cuenta" element={<Cuenta />} />
             </>
           )}
         </Routes>

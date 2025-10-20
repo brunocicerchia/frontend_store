@@ -1,6 +1,7 @@
 export function getUser() {
   try {
-    return JSON.parse(localStorage.getItem("user"));
+    const user = localStorage.getItem("user");
+    return user ? JSON.parse(user) : null;
   } catch {
     return null;
   }
@@ -21,4 +22,14 @@ export function authHeaders(extra = {}) {
 
 export function getToken() {
   return localStorage.getItem("jwt");
+}
+
+export function formatRole(role) {
+  if (!role) return "";
+  const map = {
+    BUYER: "Cliente",
+    ROLE_SELLER: "Vendedor",
+    ROLE_ADMIN: "Administrador",
+  };
+  return map[role] || role.replace("ROLE_", "");
 }
