@@ -11,7 +11,6 @@ function Navbar() {
   <nav className="bg-brand-light shadow-md sticky top-0 z-50 border-b border-brand-dark/10">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex justify-between items-center h-16">
-        {/* Logo */}
         <Link 
           to="/" 
           className="text-brand-dark text-xl sm:text-2xl font-bold flex items-center hover:scale-[1.02] transition-transform duration-300"
@@ -20,7 +19,6 @@ function Navbar() {
           <span>PortalPhone</span>
         </Link>
         
-        {/* Desktop Menu */}
         <ul className="hidden md:flex space-x-1 lg:space-x-4 items-center">
           {[
             { to: "/", label: "Inicio" },
@@ -39,7 +37,6 @@ function Navbar() {
             </li>
           ))}
 
-          {/* 👤 Acceso unificado a la cuenta */}
           <li className="ml-3">
             {user ? (
               <Link
@@ -66,7 +63,6 @@ function Navbar() {
           </li>
         </ul>
 
-        {/* Mobile menu button */}
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="md:hidden text-brand-dark p-2 rounded-md hover:bg-brand-dark/10 transition-colors duration-300"
@@ -89,7 +85,6 @@ function Navbar() {
         </button>
       </div>
 
-      {/* Mobile Menu */}
       <div 
         className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
           isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
@@ -100,6 +95,7 @@ function Navbar() {
             { to: "/", label: "Inicio" },
             { to: "/productos", label: "Productos" },
             { to: "/carrito", label: "Carrito" },
+            { to: "/dashboard", label: "Dashboard" },
             { to: "/nosotros", label: "Nosotros" },
             { to: "/contacto", label: "Contacto" },
           ].map((link) => (
@@ -114,7 +110,6 @@ function Navbar() {
             </li>
           ))}
 
-          {/* 👤 Acceso móvil */}
           <li className="border-t border-brand-dark/10 mt-2 pt-2">
             <Link 
               to={user ? "/cuenta" : "/login"} 

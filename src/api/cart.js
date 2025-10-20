@@ -10,14 +10,29 @@ export async function getMyCart() {
 }
 
 export async function addItemMe(listingId, quantity = 1) {
+  // El backend espera "listing" (no "listingId")
   const res = await authFetch(`${BASE}/me/items`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ listingId, quantity }),
+    body: JSON.stringify({ listing: listingId, quantity }),
   });
   if (!res.ok) {
-    const msg = await res.text().catch(()=>null);
-    throw new Error(msg || "No se pudo agregar al carrito");
+    let errorMsg = "No se pudo agregar al carrito";
+    try {
+      const text = await res.text();
+      if (text) {
+        // Intenta parsear como JSON primero
+        try {
+          const json = JSON.parse(text);
+          errorMsg = json.message || json.error || text;
+        } catch {
+          errorMsg = text;
+        }
+      }
+    } catch {
+      errorMsg = `Error ${res.status}: ${res.statusText}`;
+    }
+    throw new Error(errorMsg);
   }
   return res.json();
 }

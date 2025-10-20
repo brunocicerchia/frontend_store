@@ -122,9 +122,12 @@ export default function LoginPageComp() {
 
             <div className="mt-6 text-center text-sm text-brand-dark/70">
               ¿No tenés cuenta?{" "}
-              <a className="text-brand-contrast hover:underline" href="#">
+              <button
+                onClick={() => navigate("/register")}
+                className="text-brand-contrast hover:underline font-semibold"
+              >
                 Crear cuenta
-              </a>
+              </button>
             </div>
           </div>
         </div>

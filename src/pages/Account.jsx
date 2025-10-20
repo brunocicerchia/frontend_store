@@ -1,7 +1,7 @@
 // src/pages/Cuenta.jsx
 import React, { useEffect, useState } from "react";
 import { getMe } from "../api/user";
-import MisOrdenes from "./MyOrders";
+import MisOrdenes from "../components/MyOrders";
 
 export default function Cuenta() {
   const [tab, setTab] = useState("perfil");
@@ -77,7 +77,7 @@ export default function Cuenta() {
               {/* Card principal */}
               <div className="rounded-2xl bg-white border border-gray-100 p-6">
                 <h2 className="text-lg font-semibold text-brand-dark mb-4">Datos personales</h2>
-                <div className="space-y-3 text-sm">
+                <div className="space-y-3 text-sm mb-6">
                   <div className="flex items-center justify-between">
                     <span className="text-brand-dark/70">Nombre</span>
                     <span className="font-medium text-brand-dark">
@@ -99,6 +99,18 @@ export default function Cuenta() {
                     </span>
                   </div>
                 </div>
+                
+                {/* Botón de Logout */}
+                <button
+                  onClick={() => {
+                    localStorage.removeItem("jwt");
+                    localStorage.removeItem("user");
+                    window.location.assign("/");
+                  }}
+                  className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 hover:shadow-lg active:scale-[0.99] flex items-center justify-center gap-2"
+                >
+                  Cerrar Sesión
+                </button>
               </div>
 
               {/* Card secundaria (placeholder para futuro) */}

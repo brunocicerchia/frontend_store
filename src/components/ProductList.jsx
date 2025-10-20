@@ -1,94 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { authHeaders } from "../lib/auth";
-import { authFetch } from "../lib/auth";
+import { useNavigate } from 'react-router-dom';
+import { getListings } from "../api/products";
+import { addItemMe } from "../api/cart";
+import Notification from './Notification';
 
 function ProductList() {
+  const navigate = useNavigate();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [addingToCart, setAddingToCart] = useState(null); 
+  const [notification, setNotification] = useState(null);
   
   useEffect(() => {
     const fetchListings = async () => {
       try {
         setLoading(true);
-        
-        // Configurar headers con el token Bearer
-        const headers = authHeaders({ "Content-Type": "application/json" });
-
-        // 1. Obtener listings
-        const response = await fetch('http://localhost:8080/listings?page=0&size=20', {
-          method: 'GET',
-          headers: headers,
-        });
-        
-        if (!response.ok) {
-          throw new Error('Error al cargar los productos');
-        }
-        
-        const data = await response.json();
-        const listingsData = data.content;
-
-        // 2. Para cada listing, obtener detalles de variant y seller
-        const enrichedListings = await Promise.all(
-          listingsData.map(async (listing) => {
-            try {
-              // Fetch variant details
-              const variantResponse = await fetch(`http://localhost:8080/variants/${listing.variantId}`, {
-                method: 'GET',
-                headers: headers,
-              });
-              
-              // Fetch seller details
-              const sellerResponse = await fetch(`http://localhost:8080/seller/${listing.sellerId}`, {
-                method: 'GET',
-                headers: headers,
-              });
-
-              const variant = variantResponse.ok ? await variantResponse.json() : null;
-              const seller = sellerResponse.ok ? await sellerResponse.json() : null;
-
-              // Si tenemos variant, también obtener el brand
-              let brand = null;
-              if (variant && variant.deviceModelId) {
-                const modelResponse = await fetch(`http://localhost:8080/device-models/${variant.deviceModelId}`, {
-                  method: 'GET',
-                  headers: headers,
-                });
-                
-                if (modelResponse.ok) {
-                  const model = await modelResponse.json();
-                  
-                  // Ahora obtener el brand usando brandId del modelo
-                  if (model.brandId) {
-                    const brandResponse = await fetch(`http://localhost:8080/brands/${model.brandId}`, {
-                      method: 'GET',
-                      headers: headers,
-                    });
-                    
-                    if (brandResponse.ok) {
-                      brand = await brandResponse.json();
-                    }
-                  }
-                  
-                  // Agregar el modelo completo al variant
-                  variant.model = model;
-                }
-              }
-
-              return {
-                ...listing,
-                variant,
-                seller,
-                brand,
-              };
-            } catch (error) {
-              console.error(`Error fetching details for listing ${listing.id}:`, error);
-              return listing;
-            }
-          })
-        );
-
+        const enrichedListings = await getListings(0, 20);
         setListings(enrichedListings);
-
       } catch (err) {
         console.error('Error fetching listings:', err);
       } finally {
@@ -98,6 +26,38 @@ function ProductList() {
 
     fetchListings();
   }, []);
+
+  const handleAddToCart = async (listingId, e) => {
+    e.stopPropagation();
+    
+    // Verificar si el usuario está autenticado
+    const token = localStorage.getItem('jwt');
+    if (!token) {
+      setNotification({ type: 'warning', message: 'Debes iniciar sesión para agregar productos al carrito' });
+      setTimeout(() => navigate('/login'), 2000);
+      return;
+    }
+    
+    try {
+      setAddingToCart(listingId);
+      await addItemMe(listingId, 1);
+      setNotification({ type: 'success', message: 'Producto agregado al carrito exitosamente' });
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+      
+      // Mensajes de error más específicos
+      if (err.message.includes('401') || err.message.includes('403')) {
+        setNotification({ type: 'warning', message: 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.' });
+        setTimeout(() => navigate('/login'), 2000);
+      } else if (err.message.includes('400')) {
+        setNotification({ type: 'error', message: 'Error al agregar el producto. Verifica que el producto esté disponible.' });
+      } else {
+        setNotification({ type: 'error', message: err.message || 'Error al agregar al carrito. Intenta nuevamente.' });
+      }
+    } finally {
+      setAddingToCart(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -122,24 +82,28 @@ function ProductList() {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+    <>
+      {notification && (
+        <Notification
+          type={notification.type}
+          message={notification.message}
+          onClose={() => setNotification(null)}
+        />
+      )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
       {listings.map(listing => (
         <div 
           key={listing.id} 
           className="group bg-brand-light rounded-xl shadow-lg overflow-hidden hover:-translate-y-2 transition-all duration-300 hover:shadow-2xl border-2 border-transparent hover:border-brand-contrast"
         >
-          {/* Imagen del producto */}
           <div className="bg-gradient-to-br from-brand-dark-100 to-brand-light-200 p-8 sm:p-12 flex items-center justify-center">
             <div className="text-7xl sm:text-8xl">
               📱
             </div>
           </div>
           
-          {/* Información del producto */}
           <div className="p-6">
-            {/* Badges superiores */}
             <div className="flex flex-wrap gap-2 mb-3">
-              {/* Badge de stock */}
               {listing.stock > 0 ? (
                 <span className="inline-block bg-green-500/10 text-green-600 text-xs font-semibold px-3 py-1 rounded-full">
                   Stock: {listing.stock}
@@ -150,7 +114,6 @@ function ProductList() {
                 </span>
               )}
               
-              {/* Badge de condición */}
               {listing.variant?.condition && (
                 <span className={`inline-block text-xs font-semibold px-3 py-1 rounded-full ${
                   listing.variant.condition === 'NEW' ? 'bg-blue-500/10 text-blue-600' :
@@ -164,19 +127,16 @@ function ProductList() {
               )}
             </div>
             
-            {/* Marca */}
             {listing.brand && (
               <p className="text-sm font-semibold text-brand-contrast mb-1">
                 {listing.brand.name}
               </p>
             )}
             
-            {/* Nombre del modelo */}
             <h3 className="text-xl sm:text-2xl font-bold text-brand-dark mb-2 group-hover:text-brand-contrast transition-colors">
               {listing.variant?.model?.modelName || `Producto #${listing.id}`}
             </h3>
             
-            {/* Especificaciones técnicas */}
             {listing.variant && (
               <div className="flex flex-wrap gap-2 mb-3 text-sm text-gray-700">
                 {listing.variant.ram && (
@@ -197,14 +157,12 @@ function ProductList() {
               </div>
             )}
             
-            {/* Vendedor */}
             {listing.seller && (
               <p className="text-xs text-gray-500 mb-3">
                 Vendido por: <span className="font-semibold">{listing.seller.shopName}</span>
               </p>
             )}
             
-            {/* Precio con descuento si aplica */}
             <div className="mb-4">
               {listing.discountActive && listing.effectivePrice < listing.price ? (
                 <div>
@@ -225,21 +183,35 @@ function ProductList() {
               )}
             </div>
             
-            {/* Botón de acción */}
-            <button 
-              className={`w-full font-semibold py-3 px-6 rounded-lg transition-all duration-300 ${
-                listing.stock > 0 && listing.active
-                  ? 'bg-brand-contrast text-brand-light hover:bg-brand-contrast-600 hover:shadow-lg hover:shadow-brand-contrast/30 hover:-translate-y-0.5'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
-              disabled={listing.stock === 0 || !listing.active}
-            >
-              {listing.stock > 0 && listing.active ? 'Agregar al carrito' : 'No disponible'}
-            </button>
+            <div className="space-y-2">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/producto/${listing.id}`);
+                }}
+                className="w-full font-semibold py-3 px-6 rounded-lg transition-all duration-300 bg-brand-button text-brand-light hover:bg-brand-button-600 hover:shadow-lg hover:-translate-y-0.5"
+              >
+                Ver Detalles
+              </button>
+              <button 
+                onClick={(e) => handleAddToCart(listing.id, e)}
+                className={`w-full font-semibold py-3 px-6 rounded-lg transition-all duration-300 ${
+                  listing.stock > 0 && listing.active
+                    ? 'bg-brand-contrast text-brand-light hover:bg-brand-contrast-600 hover:shadow-lg hover:shadow-brand-contrast/30 hover:-translate-y-0.5'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+                disabled={listing.stock === 0 || !listing.active || addingToCart === listing.id}
+              >
+                {addingToCart === listing.id ? '🛒 Agregando...' : 
+                 listing.stock > 0 && listing.active ? '🛒 Agregar al carrito' : 
+                 'No disponible'}
+              </button>
+            </div>
           </div>
         </div>
       ))}
-    </div>
+      </div>
+    </>
   );
 }
 

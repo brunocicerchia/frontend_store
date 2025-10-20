@@ -62,11 +62,6 @@ export default function LoginPage() {
             </div>
           </div>
         </div>
-
-        {/* Footer mini */}
-        <p className="text-center mt-10 text-brand-light-400 text-xs">
-          Al continuar, aceptás nuestros Términos y Política de Privacidad.
-        </p>
       </div>
     </div>
   );

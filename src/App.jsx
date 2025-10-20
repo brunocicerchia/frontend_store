@@ -4,14 +4,17 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Productos from './pages/Productos';
+import Producto from './pages/[id]/Producto';
+import Dashboard from './pages/Dashboard';
 import Carrito from './pages/Carrito';
 import Nosotros from './pages/Nosotros';
 import Contacto from './pages/Contacto';
 import './App.css';
 import LoginPageComp from "./components/LoginPageComp";
+import RegisterPage from "./pages/RegisterPage";
 import { getToken } from "./lib/auth"; 
 import MisOrdenes from "./components/MyOrders";
-import Cuenta from "./components/Account";
+import Cuenta from "./pages/Account";
 
 function App() {
   const isAuth = !!getToken();
@@ -25,12 +28,15 @@ function App() {
           {!isAuth ? (
             <>
               <Route path="/login" element={<LoginPageComp />} />
+              <Route path="/register" element={<RegisterPage />} />
               <Route path="*" element={<Navigate to="/login" replace />} />
             </>
           ) : (
             <>
               <Route path="/" element={<Home />} />
               <Route path="/productos" element={<Productos />} />
+              <Route path="/producto/:id" element={<Producto />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/carrito" element={<Carrito />} />
               <Route path="/nosotros" element={<Nosotros />} />
               <Route path="/contacto" element={<Contacto />} />
