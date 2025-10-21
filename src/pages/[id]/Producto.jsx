@@ -77,7 +77,7 @@ function Producto() {
 
           <div className="bg-brand-light rounded-2xl shadow-2xl overflow-hidden">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-              <ProductImage />
+              <ProductImage variantId={product.variantId} />
 
               <ProductDetails 
               product={product}

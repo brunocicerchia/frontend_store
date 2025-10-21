@@ -1,4 +1,5 @@
 import React from 'react';
+import ImageUploader from './ImageUploader';
 
 export default function EditListingModal({ 
   listing, 
@@ -189,6 +190,13 @@ export default function EditListingModal({
               )}
             </div>
           </div>
+
+          {/* Image Uploader */}
+          {listing.variantId && (
+            <div className="border-2 border-gray-200 rounded-lg p-4">
+              <ImageUploader variantId={listing.variantId} />
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4 border-t">

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getListings } from "../api/products";
 import { addItemMe } from "../api/cart";
 import Notification from './Notification';
+import ProductImage from './ProductImage';
 
 function ProductList() {
   const navigate = useNavigate();
@@ -10,7 +11,7 @@ function ProductList() {
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState(null); 
   const [notification, setNotification] = useState(null);
-  const [sortOrder, setSortOrder] = useState('default'); // 'default', 'price-asc', 'price-desc'
+  const [sortOrder, setSortOrder] = useState('default'); 
   
   useEffect(() => {
     const fetchListings = async () => {
@@ -141,11 +142,10 @@ function ProductList() {
           key={listing.id} 
           className="group bg-brand-light rounded-xl shadow-lg overflow-hidden hover:-translate-y-2 transition-all duration-300 hover:shadow-2xl border-2 border-transparent hover:border-brand-contrast"
         >
-          <div className="bg-gradient-to-br from-brand-dark-100 to-brand-light-200 p-8 sm:p-12 flex items-center justify-center">
-            <div className="text-7xl sm:text-8xl">
-              📱
-            </div>
-          </div>
+          <ProductImage 
+            variantId={listing.variantId} 
+            className="w-full h-48 sm:h-64"
+          />
           
           <div className="p-6">
             <div className="flex flex-wrap gap-2 mb-3">
