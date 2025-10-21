@@ -7,7 +7,6 @@ export default function Admin() {
   const [currentUser, setCurrentUser] = useState(null);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
   const [notification, setNotification] = useState({ show: false, message: "", type: "success" });
   const [checkingAuth, setCheckingAuth] = useState(true); // Nuevo estado para verificación de autenticación
 
@@ -78,15 +77,6 @@ export default function Admin() {
     setNotification({ show: false, message: "", type: "success" });
   };
 
-  // Filtrar usuarios por búsqueda
-  const filteredUsers = users.filter(
-    (user) =>
-      user.firstname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.lastname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.roles?.some(role => role.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
   // Mostrar loading mientras verificamos autenticación
   if (checkingAuth) {
     return (
@@ -117,17 +107,6 @@ export default function Admin() {
           <p className="mt-2 text-gray-600">Gestiona usuarios y sus roles</p>
         </div>
 
-        {/* Barra de búsqueda */}
-        <div className="mb-6">
-          <input
-            type="text"
-            placeholder="Buscar por usuario, email o rol..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-contrast focus:border-transparent"
-          />
-        </div>
-
         {/* Tabla de usuarios */}
         {loading ? (
           <div className="flex justify-center items-center py-12">
@@ -156,14 +135,14 @@ export default function Admin() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredUsers.length === 0 ? (
+                {users.length === 0 ? (
                   <tr>
                     <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
                       No se encontraron usuarios
                     </td>
                   </tr>
                 ) : (
-                  filteredUsers.map((user) => (
+                  users.map((user) => (
                     <tr key={user.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.id}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">

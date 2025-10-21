@@ -35,8 +35,8 @@ function Dashboard() {
   const [needsStore, setNeedsStore] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
-  // Wizard state
-  const [showWizard, setShowWizard] = useState(false);
+  // Creador de productos state
+  const [showCreador, setShowCreador] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedModelId, setSelectedModelId] = useState('');
   const [selectedVariantId, setSelectedVariantId] = useState('');
@@ -138,7 +138,7 @@ function Dashboard() {
     }
   };
 
-  // Wizard handlers
+  // Handlers del creador
   const handleStep1Next = async () => {
     try {
       if (!useExistingModel) {
@@ -223,7 +223,7 @@ function Dashboard() {
         type: 'success',
         message: '✅ Producto creado exitosamente!'
       });
-      resetWizard();
+      resetCreador();
       fetchAllData();
     } catch (error) {
       console.error('Error saving listing:', error);
@@ -234,8 +234,8 @@ function Dashboard() {
     }
   };
 
-  const resetWizard = () => {
-    setShowWizard(false);
+  const resetCreador = () => {
+    setShowCreador(false);
     setCurrentStep(1);
     setSelectedModelId('');
     setSelectedVariantId('');
@@ -374,7 +374,7 @@ function Dashboard() {
           <h1 className="text-4xl font-bold text-brand-light mb-4">Dashboard de Productos</h1>
           <div className="flex flex-wrap gap-4">
             <button
-              onClick={() => setShowWizard(true)}
+              onClick={() => setShowCreador(true)}
               className="bg-brand-contrast text-brand-light px-8 py-4 rounded-lg font-bold text-lg hover:bg-brand-contrast-600 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1"
             >
               Crear Nuevo Producto
@@ -382,7 +382,7 @@ function Dashboard() {
           </div>
         </div>
 
-        {showWizard && (
+        {showCreador && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
             <div className="bg-brand-light rounded-2xl shadow-2xl max-w-3xl w-full p-8 max-h-[90vh] overflow-y-auto">
               <ProgressSteps currentStep={currentStep} />
@@ -401,7 +401,7 @@ function Dashboard() {
                   onToggleExisting={setUseExistingModel}
                   onFormChange={setModelFormData}
                   onNext={handleStep1Next}
-                  onCancel={resetWizard}
+                  onCancel={resetCreador}
                 />
               )}
 
