@@ -10,6 +10,7 @@ function ProductList() {
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState(null); 
   const [notification, setNotification] = useState(null);
+  const [sortOrder, setSortOrder] = useState('default'); // 'default', 'price-asc', 'price-desc'
   
   useEffect(() => {
     const fetchListings = async () => {
@@ -26,6 +27,31 @@ function ProductList() {
 
     fetchListings();
   }, []);
+
+  // Función para ordenar los listings
+  const getSortedListings = () => {
+    const listingsCopy = [...listings];
+    
+    if (sortOrder === 'price-asc') {
+      return listingsCopy.sort((a, b) => {
+        const priceA = a.discountActive && a.effectivePrice ? a.effectivePrice : a.price;
+        const priceB = b.discountActive && b.effectivePrice ? b.effectivePrice : b.price;
+        return priceA - priceB;
+      });
+    }
+    
+    if (sortOrder === 'price-desc') {
+      return listingsCopy.sort((a, b) => {
+        const priceA = a.discountActive && a.effectivePrice ? a.effectivePrice : a.price;
+        const priceB = b.discountActive && b.effectivePrice ? b.effectivePrice : b.price;
+        return priceB - priceA;
+      });
+    }
+    
+    return listingsCopy; // orden por defecto
+  };
+
+  const sortedListings = getSortedListings();
 
   const handleAddToCart = async (listingId, e) => {
     e.stopPropagation();
@@ -90,8 +116,27 @@ function ProductList() {
           onClose={() => setNotification(null)}
         />
       )}
+      
+      {/* Filtro de ordenamiento */}
+      <div className="mb-6 flex justify-end">
+        <div className="inline-flex items-center gap-3 bg-brand-light rounded-lg px-4 py-3 shadow-md">
+          <label htmlFor="sort-select" className="text-sm font-semibold text-brand-dark">
+            Ordenar por:
+          </label>
+          <select
+            id="sort-select"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+            className="bg-white border-2 border-gray-300 rounded-lg px-4 py-2 text-sm font-medium text-brand-dark focus:ring-2 focus:ring-brand-contrast focus:border-brand-contrast transition-all cursor-pointer"
+          >
+            <option value="price-asc">Precio: Menor a Mayor</option>
+            <option value="price-desc">Precio: Mayor a Menor</option>
+          </select>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-      {listings.map(listing => (
+      {sortedListings.map(listing => (
         <div 
           key={listing.id} 
           className="group bg-brand-light rounded-xl shadow-lg overflow-hidden hover:-translate-y-2 transition-all duration-300 hover:shadow-2xl border-2 border-transparent hover:border-brand-contrast"
