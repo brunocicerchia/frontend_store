@@ -162,7 +162,6 @@ function Navbar() {
             </li>
           ))}
 
-          {/* Carrito en móvil */}
           <li>
             <Link 
               to="/carrito"

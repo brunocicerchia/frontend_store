@@ -24,6 +24,9 @@ export default function ProductsTable({
                 Precio
               </th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-brand-light uppercase tracking-wider">
+                Descuento
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-brand-light uppercase tracking-wider">
                 Stock
               </th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-brand-light uppercase tracking-wider">
@@ -47,8 +50,24 @@ export default function ProductsTable({
                     {listing.variant?.ram}GB / {listing.variant?.storage}GB - {listing.variant?.color}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-brand-button">
-                  ${listing.price?.toFixed(2)}
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <div className="font-bold text-brand-button">
+                    ${listing.price?.toFixed(2)}
+                  </div>
+                  {listing.discountActive && listing.effectivePrice && listing.effectivePrice < listing.price && (
+                    <div className="text-xs text-green-600 font-semibold">
+                      ${listing.effectivePrice.toFixed(2)} (con desc.)
+                    </div>
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  {listing.discountActive && listing.discountType !== 'NONE' ? (
+                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                      🏷️ -{listing.discountValue}%
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 text-xs">Sin descuento</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-brand-dark">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${

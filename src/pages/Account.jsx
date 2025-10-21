@@ -29,7 +29,11 @@ export default function Cuenta() {
       {/* Encabezado */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-brand-dark">Mi cuenta</h1>
-        <p className="text-brand-dark/60">Gestioná tu perfil y consultá tus órdenes</p>
+        <p className="text-brand-dark/60">
+          {me?.roles?.includes("ADMIN") || me?.roles?.includes("SELLER")
+            ? "Gestioná tu perfil"
+            : "Gestioná tu perfil y consultá tus órdenes"}
+        </p>
       </div>
 
       {/* Tabs */}
@@ -44,16 +48,19 @@ export default function Cuenta() {
         >
           Perfil
         </button>
-        <button
-          onClick={() => setTab("ordenes")}
-          className={`px-4 py-2 text-sm font-medium ${
-            tab === "ordenes"
-              ? "bg-brand-contrast text-white"
-              : "text-brand-dark hover:bg-brand-dark/5"
-          }`}
-        >
-          Mis órdenes
-        </button>
+        {/* Solo mostrar pestaña de órdenes para BUYER */}
+        {!me?.roles?.includes("ADMIN") && !me?.roles?.includes("SELLER") && (
+          <button
+            onClick={() => setTab("ordenes")}
+            className={`px-4 py-2 text-sm font-medium ${
+              tab === "ordenes"
+                ? "bg-brand-contrast text-white"
+                : "text-brand-dark hover:bg-brand-dark/5"
+            }`}
+          >
+            Mis órdenes
+          </button>
+        )}
       </div>
 
       {/* Contenido */}
@@ -125,9 +132,8 @@ export default function Cuenta() {
         </>
       )}
 
-      {tab === "ordenes" && (
+      {tab === "ordenes" && !me?.roles?.includes("ADMIN") && !me?.roles?.includes("SELLER") && (
         <div>
-          {/* Reutilizamos la página MisOrdenes tal cual */}
           <MisOrdenes />
         </div>
       )}

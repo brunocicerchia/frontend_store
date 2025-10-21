@@ -259,6 +259,9 @@ function Dashboard() {
         price: parseFloat(formData.price),
         stock: parseInt(formData.stock),
         active: formData.active,
+        discountType: formData.discountType || 'NONE',
+        discountValue: parseFloat(formData.discountValue) || 0,
+        discountActive: formData.discountActive || false
       };
 
       await updateListing(editingListing.id, data);

@@ -624,7 +624,296 @@ DELETE /carts/{id}
 
 ---
 
-## 📊 Códigos de Estado HTTP
+## �️ Variant Images (Imágenes de Variantes)
+
+### Listar Imágenes de una Variante
+
+```http
+GET /variants/{variantId}/images
+```
+
+🔓 **Público**
+
+**Response:** `200 OK`
+
+```json
+[
+  {
+    "id": 1,
+    "filename": "galaxy-s23-black.jpg",
+    "contentType": "image/jpeg",
+    "sizeBytes": 245678,
+    "primaryImage": true
+  }
+]
+```
+
+### Descargar Imagen (Binario)
+
+```http
+GET /variants/{variantId}/images/{imageId}/bytes
+```
+
+🔓 **Público**
+
+**Response:** `200 OK` - Devuelve el archivo binario de la imagen con el Content-Type apropiado
+
+### Subir Imagen
+
+```http
+POST /variants/{variantId}/images
+```
+
+🔒 **Requiere:** `ADMIN` o `SELLER`
+
+**Content-Type:** `multipart/form-data`
+
+**Form Data:**
+- `file`: Archivo de imagen (obligatorio)
+- `asPrimary`: boolean (opcional, default: false) - Marca como imagen principal
+
+**Response:** `201 Created`
+
+```json
+{
+  "id": 1,
+  "filename": "galaxy-s23-black.jpg",
+  "contentType": "image/jpeg",
+  "sizeBytes": 245678,
+  "primaryImage": true
+}
+```
+
+### Marcar como Imagen Principal
+
+```http
+PUT /variants/{variantId}/images/{imageId}/primary
+```
+
+🔒 **Requiere:** `ADMIN` o `SELLER`
+
+**Response:** `204 No Content`
+
+### Eliminar Imagen
+
+```http
+DELETE /variants/{variantId}/images/{imageId}
+```
+
+🔒 **Requiere:** `ADMIN` o `SELLER`
+
+**Response:** `204 No Content`
+
+---
+
+## 📦 Orders (Órdenes de Compra)
+
+### Crear Orden desde Carrito (Checkout)
+
+```http
+POST /orders/me/checkout
+```
+
+🔒 **Requiere:** `BUYER`
+
+**Response:** `201 Created`
+
+```json
+{
+  "id": 1,
+  "orderNumber": "ORD-20251020-00001",
+  "buyerId": 5,
+  "status": "PENDING",
+  "subtotal": 1799.98,
+  "discountTotal": 0.0,
+  "taxTotal": 377.99,
+  "grandTotal": 2177.97,
+  "createdAt": "2025-10-20T02:30:00",
+  "items": [
+    {
+      "id": 1,
+      "listingId": 5,
+      "sellerId": 2,
+      "title": "Samsung Galaxy S23 - 8GB RAM/256GB - Black (NEW)",
+      "unitPrice": 899.99,
+      "quantity": 2,
+      "lineTotal": 1799.98
+    }
+  ]
+}
+```
+
+### Listar Mis Órdenes
+
+```http
+GET /orders/me?page={page}&size={size}
+```
+
+🔒 **Requiere:** `BUYER`
+
+**Query Params:**
+- `page` (opcional): Número de página (default: 0)
+- `size` (opcional): Tamaño de página (default: 20)
+
+**Response:** `200 OK` - Formato de página con órdenes
+
+### Obtener Orden por ID
+
+```http
+GET /orders/{id}
+```
+
+🔒 **Requiere:** `BUYER` (solo propietario) o `ADMIN`
+
+**Response:** `200 OK` - Mismo formato que en checkout
+
+---
+
+## 👤 Users (Usuarios)
+
+### Obtener Mi Perfil
+
+```http
+GET /api/v1/users/me
+```
+
+🔒 **Requiere autenticación**
+
+**Response:** `200 OK`
+
+```json
+{
+  "id": 1,
+  "firstname": "John",
+  "lastname": "Doe",
+  "email": "john.doe@example.com",
+  "roles": ["BUYER"]
+}
+```
+
+### Listar Todos los Usuarios
+
+```http
+GET /api/v1/users?page={page}&size={size}
+```
+
+🔒 **Requiere:** `ADMIN`
+
+**Query Params:**
+- `page` (opcional): Número de página (default: 0)
+- `size` (opcional): Tamaño de página (default: 20)
+
+**Response:** `200 OK`
+
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "firstname": "John",
+      "lastname": "Doe",
+      "email": "john.doe@example.com",
+      "roles": ["BUYER"]
+    },
+    {
+      "id": 2,
+      "firstname": "Jane",
+      "lastname": "Smith",
+      "email": "jane.smith@example.com",
+      "roles": ["SELLER"]
+    }
+  ],
+  "pageable": { ... },
+  "totalElements": 50,
+  "totalPages": 3
+}
+```
+
+### Obtener Usuario por ID
+
+```http
+GET /api/v1/users/{id}
+```
+
+🔒 **Requiere:** `ADMIN`
+
+**Response:** `200 OK`
+
+```json
+{
+  "id": 1,
+  "firstname": "John",
+  "lastname": "Doe",
+  "email": "john.doe@example.com",
+  "roles": ["BUYER"]
+}
+```
+
+### Actualizar Mi Perfil
+
+```http
+PUT /api/v1/users/me
+```
+
+🔒 **Requiere autenticación**
+
+**Body:** (Todos los campos son opcionales)
+
+```json
+{
+  "firstname": "Juan",
+  "lastname": "Pérez",
+  "email": "juan.perez@example.com"
+}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "id": 1,
+  "firstname": "Juan",
+  "lastname": "Pérez",
+  "email": "juan.perez@example.com",
+  "roles": ["BUYER"]
+}
+```
+
+### Actualizar Usuario por ID
+
+```http
+PUT /api/v1/users/{id}
+```
+
+🔒 **Requiere:** `ADMIN`
+
+**Body:** (Todos los campos son opcionales)
+
+```json
+{
+  "firstname": "Juan",
+  "lastname": "Pérez",
+  "email": "juan.perez@example.com"
+}
+```
+
+**Response:** `200 OK` - Mismo formato que actualizar perfil
+
+**Nota:** Al actualizar el email, se verifica que no esté en uso por otro usuario.
+
+### Eliminar Usuario
+
+```http
+DELETE /api/v1/users/{id}
+```
+
+🔒 **Requiere:** `ADMIN`
+
+**Response:** `204 No Content`
+
+---
+
+## �📊 Códigos de Estado HTTP
 
 | Código | Descripción                                |
 | ------ | ------------------------------------------ |

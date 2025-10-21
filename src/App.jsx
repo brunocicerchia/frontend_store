@@ -2,6 +2,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import NavbarAdmin from './components/NavbarAdmin';
+import NavbarSeller from './components/NavbarSeller';
 import Home from './pages/Home';
 import Productos from './pages/Productos';
 import Producto from './pages/[id]/Producto';
@@ -12,17 +14,35 @@ import Contacto from './pages/Contacto';
 import './App.css';
 import LoginPageComp from "./components/LoginPageComp";
 import RegisterPage from "./pages/RegisterPage";
-import { getToken } from "./lib/auth"; 
+import { getToken, getUser } from "./lib/auth"; 
 import MisOrdenes from "./components/MyOrders";
 import Cuenta from "./pages/Account";
+import Admin from "./pages/Admin";
 
 function App() {
   const isAuth = !!getToken();
+  const user = getUser();
+
+  // Función para determinar qué Navbar mostrar
+  const renderNavbar = () => {
+    if (!isAuth) {
+      return <Navbar />; // Navbar común para usuarios no logueados
+    }
+
+    // Verificar roles del usuario
+    if (user?.roles?.includes("ADMIN")) {
+      return <NavbarAdmin />;
+    } else if (user?.roles?.includes("SELLER")) {
+      return <NavbarSeller />;
+    } else {
+      return <Navbar />; // Navbar común para BUYER
+    }
+  };
 
   return (
     <Router>
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-200">
-        <Navbar />
+        {renderNavbar()}
 
         <Routes>
           {!isAuth ? (
@@ -44,6 +64,7 @@ function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
               <Route path="/ordenes" element={<MisOrdenes />} />
               <Route path="/cuenta" element={<Cuenta />} />
+              <Route path="/admin" element={<Admin />} />
             </>
           )}
         </Routes>
