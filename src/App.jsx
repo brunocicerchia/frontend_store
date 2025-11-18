@@ -8,6 +8,7 @@ import Productos from './pages/Productos';
 import Producto from './pages/[id]/Producto';
 import Dashboard from './pages/Dashboard';
 import Carrito from './pages/Carrito';
+import Checkout from './pages/Checkout';
 import Nosotros from './pages/Nosotros';
 import Contacto from './pages/Contacto';
 import './App.css';
@@ -60,6 +61,7 @@ function App() {
               <Route path="/login" element={<Navigate to="/" replace />} />
               <Route path="*" element={<Navigate to="/" replace />} />
               <Route path="/ordenes" element={<MyOrders />} />
+              <Route path="/checkout" element={<Checkout />} />
               <Route path="/cuenta" element={<Cuenta />} />
               <Route path="/admin" element={<Admin />} />
             </>

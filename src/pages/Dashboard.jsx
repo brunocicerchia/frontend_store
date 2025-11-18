@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { getMe } from '../api/user';
 import Notification from '../components/Notification';
 import CreateStoreForm from '../components/dashboard/CreateStoreForm';
@@ -12,20 +13,27 @@ import EditListingModal from '../components/dashboard/EditListingModal';
 import ProductsTable from '../components/dashboard/ProductsTable';
 import { getMySeller, createSeller } from '../api/store';
 import {
-  getListings,
-  createListing,
-  updateListing,
-  deleteListing,
   getAllBrands,
   getAllDeviceModels,
   getAllVariants,
   createVariant,
   createDeviceModel,
 } from '../api/products';
+import {
+  fetchListings,
+  selectProducts,
+  selectProductsStatus,
+  createListingThunk,
+  updateListingThunk,
+  deleteListingThunk,
+} from '../store/productsSlice';
 
 function Dashboard() {
   const navigate = useNavigate();
-  const [listings, setListings] = useState([]);
+  const dispatch = useDispatch();
+  const listings = useSelector(selectProducts) || [];
+  const productsStatus = useSelector(selectProductsStatus);
+  const bootstrapRef = useRef(false);
   const [brands, setBrands] = useState([]);
   const [models, setModels] = useState([]);
   const [variants, setVariants] = useState([]);
@@ -65,7 +73,13 @@ function Dashboard() {
   // Edit state
   const [editingListing, setEditingListing] = useState(null);
 
+  const sellerListings = mySeller
+    ? listings.filter((l) => l.sellerId === mySeller.id)
+    : [];
+
   useEffect(() => {
+    if (bootstrapRef.current) return;
+    bootstrapRef.current = true;
     (async () => {
       try {
         const userData = await getMe();
@@ -105,25 +119,24 @@ function Dashboard() {
       setMySeller(sellerData);
       setNeedsStore(false);
       // Si tiene tienda, cargar todos los datos
-      await fetchAllData();
+      await fetchAllData(true);
     } catch (error) {
       setNeedsStore(true);
       setLoading(false);
     }
   };
 
-  const fetchAllData = async () => {
+  const fetchAllData = async (forceListings = false) => {
     try {
       setLoading(true);
-      
-      const [listingsData, brandsData, modelsData, variantsData] = await Promise.all([
-        getListings(0, 100),
+      if (forceListings || productsStatus === 'idle') {
+        await dispatch(fetchListings({ page: 0, size: 100 })).unwrap();
+      }
+      const [brandsData, modelsData, variantsData] = await Promise.all([
         getAllBrands(),
         getAllDeviceModels(),
         getAllVariants()
       ]);
-      
-      setListings(listingsData);
       setBrands(brandsData);
       setModels(modelsData);
       setVariants(variantsData);
@@ -218,13 +231,12 @@ function Dashboard() {
         active: listingFormData.active,
       };
 
-      await createListing(data);
+      await dispatch(createListingThunk(data)).unwrap();
       setNotification({
         type: 'success',
         message: '✅ Producto creado exitosamente!'
       });
       resetCreador();
-      fetchAllData();
     } catch (error) {
       console.error('Error saving listing:', error);
       setNotification({
@@ -264,13 +276,12 @@ function Dashboard() {
         discountActive: formData.discountActive || false
       };
 
-      await updateListing(editingListing.id, data);
+      await dispatch(updateListingThunk({ listingId: editingListing.id, data })).unwrap();
       setNotification({
         type: 'success',
         message: '✅ Producto actualizado exitosamente!'
       });
       setEditingListing(null);
-      fetchAllData();
     } catch (error) {
       console.error('Error updating listing:', error);
       setNotification({
@@ -284,12 +295,11 @@ function Dashboard() {
     if (!window.confirm('¿Estás seguro de eliminar este listing?')) return;
     
     try {
-      await deleteListing(listing.id, listing.sellerId);
+      await dispatch(deleteListingThunk({ listingId: listing.id, sellerId: listing.sellerId })).unwrap();
       setNotification({
         type: 'success',
         message: 'Listing eliminado exitosamente'
       });
-      fetchAllData();
     } catch (error) {
       console.error('Error deleting listing:', error);
       setNotification({
@@ -308,7 +318,7 @@ function Dashboard() {
         type: 'success',
         message: '🎉 ¡Tienda creada exitosamente! Ahora puedes comenzar a vender.'
       });
-      await fetchAllData();
+      await fetchAllData(true);
     } catch (error) {
       console.error('Error creating store:', error);
       setNotification({
@@ -367,7 +377,7 @@ function Dashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SellerHeader 
           seller={mySeller} 
-          productCount={listings.filter(l => l.sellerId === mySeller?.id).length}
+          productCount={sellerListings.length}
         />
 
         <div className="mb-8">
@@ -444,7 +454,7 @@ function Dashboard() {
 
         {/* Products Table */}
         <ProductsTable
-          listings={listings}
+          listings={sellerListings}
           mySeller={mySeller}
           onEdit={handleEdit}
           onDelete={handleDelete}
@@ -455,3 +465,9 @@ function Dashboard() {
 }
 
 export default Dashboard;
+
+
+
+
+
+

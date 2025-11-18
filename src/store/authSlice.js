@@ -112,7 +112,15 @@ export const { logout } = authSlice.actions;
 export const selectCurrentUser = (state) => state.auth.user;
 export const selectToken = (state) => state.auth.token;
 export const selectIsAuthenticated = (state) => !!state.auth.token;
-export const selectUserRole = (state) => state.auth.user?.role ?? null;
+export const selectUserRole = (state) => {
+  const user = state.auth.user;
+  if (!user) return null;
+  if (user.role) return user.role;
+  if (Array.isArray(user.roles) && user.roles.length > 0) {
+    return user.roles[0];
+  }
+  return null;
+};
 export const selectAuthStatus = (state) => state.auth.status;
 export const selectAuthError = (state) => state.auth.error;
 

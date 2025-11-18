@@ -1,16 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { getEnrichedListing } from '../../api/products';
-import { addItemMe } from '../../api/cart';
 import LoadingState from '../../components/product/LoadingState';
 import ErrorState from '../../components/product/ErrorState';
 import Breadcrumb from '../../components/product/Breadcrumb';
 import ProductImage from '../../components/product/ProductImage';
 import ProductDetails from '../../components/product/ProductDetails';
 import Notification from '../../components/Notification';
+import { addItemToCart } from '../../store/cartSlice';
+import { selectIsAuthenticated } from '../../store/authSlice';
 
 function Producto() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const isAuth = useSelector(selectIsAuthenticated);
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -39,9 +44,20 @@ function Producto() {
   }, [id]);
 
   const handleAddToCart = async () => {
+    if (!isAuth) {
+      setNotification({
+        type: 'warning',
+        message: 'Necesitas iniciar sesión para agregar productos al carrito.',
+      });
+      setTimeout(() => navigate('/login'), 1200);
+      return;
+    }
+
     try {
       setAddingToCart(true);
-      await addItemMe(product.id, quantity);
+      await dispatch(
+        addItemToCart({ listingId: product.id, quantity })
+      ).unwrap();
       setNotification({ type: 'success', message: 'Producto agregado al carrito exitosamente' });
     } catch (err) {
       console.error('Error adding to cart:', err);

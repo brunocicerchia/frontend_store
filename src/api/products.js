@@ -250,6 +250,51 @@ export async function getAllVariants() {
   return data.content || data;
 }
 
+export async function updateBrand(brandId, data) {
+  const res = await fetch(`${API_BASE_URL}/brands/${brandId}`, {
+    method: "PUT",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const msg = await res.text().catch(() => null);
+    throw new Error(msg || "Error al actualizar la marca");
+  }
+
+  return res.json();
+}
+
+export async function updateDeviceModel(modelId, data) {
+  const res = await fetch(`${API_BASE_URL}/device-models/${modelId}`, {
+    method: "PUT",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const msg = await res.text().catch(() => null);
+    throw new Error(msg || "Error al actualizar el modelo");
+  }
+
+  return res.json();
+}
+
+export async function updateVariant(variantId, data) {
+  const res = await fetch(`${API_BASE_URL}/variants/${variantId}`, {
+    method: "PUT",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const msg = await res.text().catch(() => null);
+    throw new Error(msg || "Error al actualizar la variante");
+  }
+
+  return res.json();
+}
+
 export async function getAllSellers() {
   const res = await fetch(`${API_BASE_URL}/seller`, {
     method: "GET",

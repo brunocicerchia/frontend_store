@@ -3,45 +3,40 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 
-import { getListings } from "../api/products";
-
 import ProductImage from "./ProductImage";
 import Notification from "./Notification";
 
 import { addItemToCart } from "../store/cartSlice";
 import { selectIsAuthenticated } from "../store/authSlice";
+import {
+  fetchListings,
+  selectProducts,
+  selectProductsError,
+  selectProductsStatus,
+} from "../store/productsSlice";
 
 function ProductList() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
   const isAuth = useSelector(selectIsAuthenticated);
+  const products = useSelector(selectProducts);
+  const productsStatus = useSelector(selectProductsStatus);
+  const productsError = useSelector(selectProductsError);
 
-  const [listings, setListings] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState(null);
   const [notification, setNotification] = useState(null);
   const [sortOrder, setSortOrder] = useState("default");
 
   useEffect(() => {
-    const fetchListings = async () => {
-      try {
-        setLoading(true);
-        const enrichedListings = await getListings(0, 20);
-        setListings(enrichedListings);
-      } catch (err) {
-        console.error("Error fetching listings:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchListings();
-  }, []);
+    if (productsStatus === "idle") {
+      dispatch(fetchListings());
+    }
+  }, [dispatch, productsStatus]);
 
   // Ordenamiento por precio
   const getSortedListings = () => {
-    const listingsCopy = [...listings];
+    const listingsCopy = [...products];
 
     if (sortOrder === "price-asc") {
       return listingsCopy.sort((a, b) => {
@@ -109,7 +104,7 @@ function ProductList() {
   // RENDER
   // ======================
 
-  if (loading) {
+  if (productsStatus === "loading") {
     return (
       <div className="flex justify-center items-center py-20">
         <div className="text-center">
@@ -120,7 +115,20 @@ function ProductList() {
     );
   }
 
-  if (listings.length === 0) {
+  if (productsStatus === "failed") {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <div className="text-center bg-brand-light rounded-xl p-10 shadow-lg max-w-lg">
+          <div className="text-4xl mb-4">:(</div>
+          <p className="text-brand-dark text-xl">
+            {productsError || "No se pudieron cargar los productos."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!products.length) {
     return (
       <div className="flex justify-center items-center py-20">
         <div className="text-center bg-brand-light rounded-xl p-10 shadow-lg">

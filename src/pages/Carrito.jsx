@@ -1,6 +1,7 @@
 // src/pages/Carrito.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 
 import {
   selectCart,
@@ -11,31 +12,19 @@ import {
   removeItemFromCart,
   clearCart,
 } from "../store/cartSlice";
-
-import {
-  checkoutFromCart,
-  selectCheckoutStatus,
-  selectCheckoutError,
-  selectLastCreatedOrder,
-} from "../store/ordersSlice";
 import { getEnrichedListing } from "../api/products";
 
 export default function Carrito() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   // Estado del carrito
   const cart = useSelector(selectCart);
   const status = useSelector(selectCartStatus);
   const cartError = useSelector(selectCartError);
 
-  // Estado de checkout / órdenes
-  const checkoutStatus = useSelector(selectCheckoutStatus);
-  const checkoutError = useSelector(selectCheckoutError);
-  const lastOrder = useSelector(selectLastCreatedOrder);
-
   // Estado local de UI
   const [working, setWorking] = useState(null); // "clear" | "checkout" | listingId | null
-  const [success, setSuccess] = useState(null);
   const [localError, setLocalError] = useState(null);
   const [resolvedTitles, setResolvedTitles] = useState({});
 
@@ -209,29 +198,8 @@ export default function Carrito() {
     }
   };
 
-  const handleCheckout = async () => {
-    setWorking("checkout");
-    setLocalError(null);
-
-    try {
-      const order = await dispatch(checkoutFromCart()).unwrap();
-
-      const number = order.number ?? order.orderNumber ?? order.id;
-      const orderTotal = Number(order.total ?? order.grandTotal ?? 0);
-
-      setSuccess({
-        number,
-        total: orderTotal,
-      });
-
-      // ocultar mensaje después de unos segundos
-      setTimeout(() => setSuccess(null), 6000);
-    } catch (err) {
-      console.error(err);
-      setLocalError(err.message || "No se pudo crear la orden");
-    } finally {
-      setWorking(null);
-    }
+  const handleCheckout = () => {
+    navigate("/checkout");
   };
 
   // Estados básicos
@@ -285,23 +253,6 @@ export default function Carrito() {
       {(cartError || localError) && (
         <div className="mb-4 rounded-lg bg-red-50 text-red-700 px-4 py-3 border border-red-200">
           {cartError || localError}
-        </div>
-      )}
-
-      {checkoutError && (
-        <div className="mb-4 rounded-lg bg-red-50 text-red-700 px-4 py-3 border border-red-200">
-          {checkoutError}
-        </div>
-      )}
-
-      {success && (
-        <div className="mb-4 rounded-lg bg-green-50 text-green-700 px-4 py-3 border border-green-200">
-          <p className="font-semibold">✅ Orden creada correctamente</p>
-          <p className="text-sm">
-            <span className="font-medium">Número:</span> {success.number} ·{" "}
-            <span className="font-medium">Total:</span>{" "}
-            ${success.total.toFixed(2)}
-          </p>
         </div>
       )}
 
@@ -418,19 +369,21 @@ export default function Carrito() {
         <div className="flex justify-end p-4 border-t border-gray-100 bg-white">
           <button
             onClick={handleCheckout}
-            disabled={
-              items.length === 0 ||
-              working === "checkout" ||
-              checkoutStatus === "loading"
-            }
+            disabled={items.length === 0}
             className="bg-brand-button text-brand-light font-semibold py-3 px-6 rounded-lg hover:bg-brand-button-600 disabled:opacity-50"
           >
-            {checkoutStatus === "loading" || working === "checkout"
-              ? "Procesando…"
-              : "Proceder al pago"}
+            Proceder al pago
           </button>
         </div>
       </div>
     </div>
   );
 }
+
+
+
+
+
+
+
+
