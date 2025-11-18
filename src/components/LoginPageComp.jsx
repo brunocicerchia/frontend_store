@@ -1,59 +1,31 @@
 // src/components/LoginPageComp.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-const API_BASE = "http://localhost:8080/api/v1";
-const API_LOGIN_URL = `${API_BASE}/auth/authenticate`;
-const API_ME_URL = `${API_BASE}/users/me`;
+import { useDispatch, useSelector } from "react-redux";
+import { loginUser, selectAuthStatus, selectAuthError } from "../store/authSlice";
 
 export default function LoginPageComp() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  // estado local solo para los inputs
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+
+  // leemos loading/error desde Redux (opcional)
+  const status = useSelector(selectAuthStatus);
+  const error = useSelector(selectAuthError);
+  const loading = status === "loading";
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError(null);
-    setLoading(true);
 
     try {
-      const res = await fetch(API_LOGIN_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!res.ok) {
-        let msg = "Error al iniciar sesión";
-        try {
-          const t = await res.text();
-          if (t) msg = t;
-        } catch {}
-        if (res.status === 401) msg = "Credenciales inválidas";
-        throw new Error(msg);
-      }
-
-      const data = await res.json();
-      const token = data.access_token || data.token || data.jwt;
-      if (!token) throw new Error("La API no devolvió access_token");
-
-      localStorage.setItem("jwt", token);
-
-      const meRes = await fetch(API_ME_URL, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (meRes.ok) {
-        const me = await meRes.json();
-        localStorage.setItem("user", JSON.stringify(me));
-      }
-
-      window.location.assign("/");
-    } catch (err) {
-      setError(err.message || "No se pudo iniciar sesión");
-    } finally {
-      setLoading(false);
+      // dispatch devuelve una promesa; unwrap lanza si el thunk hizo rejectWithValue
+      await dispatch(loginUser({ email, password })).unwrap();
+      navigate("/", { replace: true });
+    } catch {
+      // el mensaje de error ya está en Redux, así que no hace falta setError local
     }
   }
 

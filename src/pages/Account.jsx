@@ -1,7 +1,8 @@
 // src/pages/Cuenta.jsx
 import React, { useEffect, useState } from "react";
 import { getMe } from "../api/user";
-import MisOrdenes from "../components/MyOrders";
+import MyOrders from "../components/MyOrders";
+
 
 export default function Cuenta() {
   const [tab, setTab] = useState("perfil");
@@ -132,10 +133,12 @@ export default function Cuenta() {
         </>
       )}
 
-      {tab === "ordenes" && !me?.roles?.includes("ADMIN") && !me?.roles?.includes("SELLER") && (
-        <div>
-          <MisOrdenes />
-        </div>
+      {tab === "ordenes" &&
+        !me?.roles?.includes("ADMIN") &&
+        !me?.roles?.includes("SELLER") && (
+          <div>
+            <MyOrders />
+          </div>
       )}
     </div>
   );

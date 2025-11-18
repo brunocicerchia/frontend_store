@@ -1,37 +1,30 @@
 // src/components/Navbar.jsx
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { getUser } from "../lib/auth";
-import { getMyCart } from "../api/cart";
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+
+import {
+  selectIsAuthenticated,
+  selectCurrentUser,
+} from "../store/authSlice";
+import {
+  fetchCart,
+  selectCartItemCount,
+} from "../store/cartSlice";
 
 function Navbar() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [cartItemCount, setCartItemCount] = useState(0);
-  const user = getUser();
-  
-  useEffect(() => {
-    const fetchCartCount = async () => {
-      if (user) {
-        try {
-          const cart = await getMyCart();
-          const totalItems = cart.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
-          setCartItemCount(totalItems);
-        } catch (err) {
-          console.error('Error fetching cart:', err);
-          setCartItemCount(0);
-        }
-      }
-    };
+  const dispatch = useDispatch();
+  const isAuth = useSelector(selectIsAuthenticated);
+  const user = useSelector(selectCurrentUser);
+  const cartItemCount = useSelector(selectCartItemCount);
 
-    fetchCartCount();
-    
-    // Actualizar el conteo cada 30 segundos si el usuario está logueado
-    const interval = user ? setInterval(fetchCartCount, 5000) : null;
-    
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [user]);
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (isAuth) {
+      dispatch(fetchCart());
+    }
+  }, [dispatch, isAuth]);
   
   return (
   <nav className="bg-brand-light shadow-md sticky top-0 z-50 border-b border-brand-dark/10">

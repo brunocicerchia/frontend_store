@@ -1,5 +1,4 @@
 // App.jsx
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import NavbarAdmin from './components/NavbarAdmin';
@@ -15,28 +14,26 @@ import './App.css';
 import LoginPageComp from "./components/LoginPageComp";
 import RegisterPage from "./pages/RegisterPage";
 import { getToken, getUser } from "./lib/auth"; 
-import MisOrdenes from "./components/MyOrders";
+import MyOrders from "./components/MyOrders";
 import Cuenta from "./pages/Account";
 import Admin from "./pages/Admin";
+import { useSelector } from 'react-redux';
+import {
+  selectCurrentUser,
+  selectIsAuthenticated,
+  selectUserRole,
+} from './store/authSlice';
 
 function App() {
-  const isAuth = !!getToken();
-  const user = getUser();
+  const user = useSelector(selectCurrentUser);
+  const isAuth = useSelector(selectIsAuthenticated);
+  const role = useSelector(selectUserRole);
 
-  // Función para determinar qué Navbar mostrar
   const renderNavbar = () => {
-    if (!isAuth) {
-      return <Navbar />; // Navbar común para usuarios no logueados
-    }
-
-    // Verificar roles del usuario
-    if (user?.roles?.includes("ADMIN")) {
-      return <NavbarAdmin />;
-    } else if (user?.roles?.includes("SELLER")) {
-      return <NavbarSeller />;
-    } else {
-      return <Navbar />; // Navbar común para BUYER
-    }
+    if (!isAuth) return <Navbar />;
+    if (role === 'ADMIN') return <NavbarAdmin />;
+    if (role === 'SELLER') return <NavbarSeller />;
+    return <Navbar />;
   };
 
   return (
@@ -62,7 +59,7 @@ function App() {
               <Route path="/contacto" element={<Contacto />} />
               <Route path="/login" element={<Navigate to="/" replace />} />
               <Route path="*" element={<Navigate to="/" replace />} />
-              <Route path="/ordenes" element={<MisOrdenes />} />
+              <Route path="/ordenes" element={<MyOrders />} />
               <Route path="/cuenta" element={<Cuenta />} />
               <Route path="/admin" element={<Admin />} />
             </>
