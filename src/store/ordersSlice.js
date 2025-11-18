@@ -3,9 +3,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { getMyOrders, checkoutMe } from "../api/order";
 import { clearCart } from "./cartSlice";
 
-
 // LISTAR ÓRDENES DEL USUARIO
-
 export const fetchMyOrders = createAsyncThunk(
   "orders/fetchMyOrders",
   async ({ page = 0, size = 20 } = {}, { rejectWithValue }) => {
@@ -18,17 +16,13 @@ export const fetchMyOrders = createAsyncThunk(
   }
 );
 
-
 // CHECKOUT: CREAR ORDEN DESDE EL CARRITO
 export const checkoutFromCart = createAsyncThunk(
   "orders/checkoutFromCart",
   async (_, { dispatch, rejectWithValue }) => {
     try {
       const order = await checkoutMe();
-
-      // Limpiar carrito en Redux
       dispatch(clearCart());
-
       return order;
     } catch (err) {
       return rejectWithValue(err.message || "No se pudo procesar el checkout");
@@ -37,13 +31,12 @@ export const checkoutFromCart = createAsyncThunk(
 );
 
 const initialState = {
-  page: null,               // Page<OrderResponse>
-  status: "idle",           // para listado
+  page: null,
+  status: "idle",
   error: null,
-
-  checkoutStatus: "idle",   // 'idle' | 'loading' | 'succeeded' | 'failed'
+  checkoutStatus: "idle",
   checkoutError: null,
-  lastCreatedOrder: null,   // OrderResponse de la última orden
+  lastCreatedOrder: null,
 };
 
 const ordersSlice = createSlice({
@@ -53,7 +46,6 @@ const ordersSlice = createSlice({
     resetOrders: () => initialState,
   },
   extraReducers: (builder) => {
-    // LISTAR ÓRDENES
     builder
       .addCase(fetchMyOrders.pending, (state) => {
         state.status = "loading";
@@ -69,7 +61,6 @@ const ordersSlice = createSlice({
         state.error = action.payload;
       });
 
-    // CHECKOUT
     builder
       .addCase(checkoutFromCart.pending, (state) => {
         state.checkoutStatus = "loading";
@@ -88,7 +79,6 @@ const ordersSlice = createSlice({
 
 export const { resetOrders } = ordersSlice.actions;
 
-// SELECTORES
 export const selectOrdersPage = (state) => state.orders.page;
 export const selectOrdersStatus = (state) => state.orders.status;
 export const selectOrdersError = (state) => state.orders.error;

@@ -245,7 +245,7 @@ export default function MyOrders() {
               Anterior
             </button>
             <div className="text-sm text-brand-dark/70">
-              PA�gina {currentPageIndex + 1} de {totalPages}
+              Pagina {currentPageIndex + 1} de {totalPages}
             </div>
             <button
               onClick={() => goToPage(currentPageIndex + 1)}
