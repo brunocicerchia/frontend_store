@@ -104,13 +104,18 @@ const catalogSlice = createSlice({
     upsertDeviceModel: (state, action) => {
       const model = action.payload;
       if (!model?.id) return;
-      const brandMap = new Map(state.brands.map((brand) => [String(brand.id), brand]));
+      const brandMap = new Map(
+        state.brands.map((brand) => [String(brand.id), brand])
+      );
       const normalized = normalizeModel(model, brandMap);
       const idx = state.deviceModels.findIndex(
         (m) => String(m.id) === String(model.id)
       );
       if (idx >= 0) {
-        state.deviceModels[idx] = { ...state.deviceModels[idx], ...normalized };
+        state.deviceModels[idx] = {
+          ...state.deviceModels[idx],
+          ...normalized,
+        };
       } else {
         state.deviceModels = [normalized, ...state.deviceModels];
       }
@@ -126,6 +131,37 @@ const catalogSlice = createSlice({
       } else {
         state.variants = [variant, ...state.variants];
       }
+    },
+    removeBrandCascade: (state, action) => {
+      const brandId = String(action.payload);
+      const modelIds = state.deviceModels
+        .filter((model) => String(model.brandId) === brandId)
+        .map((model) => String(model.id));
+      const modelIdSet = new Set(modelIds);
+      state.brands = state.brands.filter(
+        (brand) => String(brand.id) !== brandId
+      );
+      state.deviceModels = state.deviceModels.filter(
+        (model) => String(model.brandId) !== brandId
+      );
+      state.variants = state.variants.filter(
+        (variant) => !modelIdSet.has(String(variant.deviceModelId))
+      );
+    },
+    removeDeviceModelCascade: (state, action) => {
+      const modelId = String(action.payload);
+      state.deviceModels = state.deviceModels.filter(
+        (model) => String(model.id) !== modelId
+      );
+      state.variants = state.variants.filter(
+        (variant) => String(variant.deviceModelId) !== modelId
+      );
+    },
+    removeVariantEntry: (state, action) => {
+      const variantId = String(action.payload);
+      state.variants = state.variants.filter(
+        (variant) => String(variant.id) !== variantId
+      );
     },
   },
   extraReducers: (builder) => {
@@ -186,6 +222,9 @@ export const {
   upsertBrand,
   upsertDeviceModel,
   upsertVariant,
+  removeBrandCascade,
+  removeDeviceModelCascade,
+  removeVariantEntry,
 } = catalogSlice.actions;
 
 export const selectCatalogStatus = (state) => state.catalog?.status;

@@ -36,7 +36,9 @@ function ProductList() {
 
   // Ordenamiento por precio
   const getSortedListings = () => {
-    const listingsCopy = [...products];
+    const listingsCopy = [...(products || [])].filter(
+      (listing) => listing?.active !== false
+    );
 
     if (sortOrder === "price-asc") {
       return listingsCopy.sort((a, b) => {

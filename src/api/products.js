@@ -339,3 +339,54 @@ export async function createDeviceModel(data) {
   
   return res.json();
 }
+
+export async function createBrand(data) {
+  const res = await fetch(`${API_BASE_URL}/brands`, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const msg = await res.text().catch(() => null);
+    throw new Error(msg || "Error al crear marca");
+  }
+
+  return res.json();
+}
+
+export async function deleteBrand(brandId) {
+  const res = await fetch(`${API_BASE_URL}/brands/${brandId}`, {
+    method: "DELETE",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+  });
+
+  if (!res.ok) {
+    const msg = await res.text().catch(() => null);
+    throw new Error(msg || "Error al eliminar la marca");
+  }
+}
+
+export async function deleteDeviceModel(modelId) {
+  const res = await fetch(`${API_BASE_URL}/device-models/${modelId}`, {
+    method: "DELETE",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+  });
+
+  if (!res.ok) {
+    const msg = await res.text().catch(() => null);
+    throw new Error(msg || "Error al eliminar el modelo");
+  }
+}
+
+export async function deleteVariant(variantId) {
+  const res = await fetch(`${API_BASE_URL}/variants/${variantId}`, {
+    method: "DELETE",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+  });
+
+  if (!res.ok) {
+    const msg = await res.text().catch(() => null);
+    throw new Error(msg || "Error al eliminar la variante");
+  }
+}
