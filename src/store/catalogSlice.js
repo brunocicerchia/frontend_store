@@ -78,7 +78,56 @@ const initialState = {
 const catalogSlice = createSlice({
   name: "catalog",
   initialState,
-  reducers: {},
+  reducers: {
+    upsertBrand: (state, action) => {
+      const brand = action.payload;
+      if (!brand?.id) return;
+      const idx = state.brands.findIndex(
+        (b) => String(b.id) === String(brand.id)
+      );
+      if (idx >= 0) {
+        state.brands[idx] = { ...state.brands[idx], ...brand };
+      } else {
+        state.brands = [brand, ...state.brands];
+      }
+      state.deviceModels = state.deviceModels.map((model) => {
+        if (String(model.brandId) === String(brand.id)) {
+          return {
+            ...model,
+            brandName: brand.name ?? model.brandName,
+            brand,
+          };
+        }
+        return model;
+      });
+    },
+    upsertDeviceModel: (state, action) => {
+      const model = action.payload;
+      if (!model?.id) return;
+      const brandMap = new Map(state.brands.map((brand) => [String(brand.id), brand]));
+      const normalized = normalizeModel(model, brandMap);
+      const idx = state.deviceModels.findIndex(
+        (m) => String(m.id) === String(model.id)
+      );
+      if (idx >= 0) {
+        state.deviceModels[idx] = { ...state.deviceModels[idx], ...normalized };
+      } else {
+        state.deviceModels = [normalized, ...state.deviceModels];
+      }
+    },
+    upsertVariant: (state, action) => {
+      const variant = action.payload;
+      if (!variant?.id) return;
+      const idx = state.variants.findIndex(
+        (v) => String(v.id) === String(variant.id)
+      );
+      if (idx >= 0) {
+        state.variants[idx] = { ...state.variants[idx], ...variant };
+      } else {
+        state.variants = [variant, ...state.variants];
+      }
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchCatalogs.pending, (state) => {
@@ -133,10 +182,18 @@ const catalogSlice = createSlice({
   },
 });
 
+export const {
+  upsertBrand,
+  upsertDeviceModel,
+  upsertVariant,
+} = catalogSlice.actions;
+
 export const selectCatalogStatus = (state) => state.catalog?.status;
 export const selectCatalogError = (state) => state.catalog?.error;
-export const selectCatalogMutationStatus = (state) => state.catalog?.mutationStatus;
-export const selectCatalogMutationError = (state) => state.catalog?.mutationError;
+export const selectCatalogMutationStatus = (state) =>
+  state.catalog?.mutationStatus;
+export const selectCatalogMutationError = (state) =>
+  state.catalog?.mutationError;
 export const selectBrands = (state) => state.catalog?.brands || [];
 export const selectDeviceModels = (state) => state.catalog?.deviceModels || [];
 export const selectVariants = (state) => state.catalog?.variants || [];

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import Notification from "../components/Notification";
 import { useDispatch, useSelector } from "react-redux";
@@ -15,6 +15,9 @@ import {
   selectProductsStatus,
   deleteListingThunk,
   updateListingThunk,
+  updateBrandDetails,
+  updateDeviceModelDetails,
+  updateVariantDetails,
 } from "../store/productsSlice";
 import { updateBrand, updateDeviceModel, updateVariant } from "../api/products";
 import {
@@ -22,6 +25,10 @@ import {
   selectBrands,
   selectDeviceModels,
   selectVariants,
+  selectCatalogStatus,
+  upsertBrand,
+  upsertDeviceModel,
+  upsertVariant,
 } from "../store/catalogSlice";
 
 export default function Admin() {
@@ -40,9 +47,7 @@ export default function Admin() {
   const [currentUser, setCurrentUser] = useState(null);
   const [notification, setNotification] = useState({ show: false, message: "", type: "success" });
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const bootstrapped = useRef(false);
-  const listingsBootstrapped = useRef(false);
-  const catalogBootstrapped = useRef(false);
+  const catalogStatus = useSelector(selectCatalogStatus);
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
@@ -53,28 +58,25 @@ export default function Admin() {
   }, []);
 
   useEffect(() => {
-    if (!bootstrapped.current && currentUser?.roles?.includes("ADMIN")) {
-      bootstrapped.current = true;
+    if (!currentUser?.roles?.includes("ADMIN")) return;
+    if (usersStatus === "idle" || usersStatus === "failed") {
       dispatch(fetchUsers());
     }
-  }, [currentUser, dispatch]);
+  }, [currentUser, dispatch, usersStatus]);
 
   useEffect(() => {
-    if (!listingsBootstrapped.current && currentUser?.roles?.includes("ADMIN")) {
-      listingsBootstrapped.current = true;
+    if (!currentUser?.roles?.includes("ADMIN")) return;
+    if (listingsStatus === "idle") {
       dispatch(fetchListings({ page: 0, size: 100 }));
     }
-  }, [currentUser, dispatch]);
+  }, [currentUser, dispatch, listingsStatus]);
 
   useEffect(() => {
-    if (
-      !catalogBootstrapped.current &&
-      currentUser?.roles?.includes("ADMIN")
-    ) {
-      catalogBootstrapped.current = true;
+    if (!currentUser?.roles?.includes("ADMIN")) return;
+    if (catalogStatus === "idle" || catalogStatus === "failed") {
       dispatch(fetchCatalogs());
     }
-  }, [currentUser, dispatch]);
+  }, [currentUser, dispatch, catalogStatus]);
 
   useEffect(() => {
     setBrandEdits((prev) => {
@@ -270,21 +272,14 @@ export default function Admin() {
     }
   };
 
-  const refreshCatalogs = async () => {
-    try {
-      await dispatch(fetchCatalogs({ force: true })).unwrap();
-    } catch (error) {
-      console.error("Error refrescando catalogos", error);
-    }
-  };
-
   const handleSaveBrand = async (brand) => {
     const edits = brandEdits[brand.id];
     if (!edits) return;
     try {
       const updated = await updateBrand(brand.id, { name: edits.name });
       if (updated) {
-        await refreshCatalogs();
+        dispatch(upsertBrand(updated));
+        dispatch(updateBrandDetails(updated));
       }
       showNotification("Marca actualizada correctamente", "success");
     } catch (error) {
@@ -301,7 +296,8 @@ export default function Admin() {
         brandId: model.brandId,
       });
       if (updated) {
-        await refreshCatalogs();
+        dispatch(upsertDeviceModel(updated));
+        dispatch(updateDeviceModelDetails(updated));
       }
       showNotification("Modelo actualizado correctamente", "success");
     } catch (error) {
@@ -322,7 +318,8 @@ export default function Admin() {
       };
       const updated = await updateVariant(variant.id, payload);
       if (updated) {
-        await refreshCatalogs();
+        dispatch(upsertVariant(updated));
+        dispatch(updateVariantDetails(updated));
       }
       showNotification("Variante actualizada correctamente", "success");
     } catch (error) {
