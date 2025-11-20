@@ -16,14 +16,13 @@ import {
   deleteListingThunk,
   updateListingThunk,
 } from "../store/productsSlice";
+import { updateBrand, updateDeviceModel, updateVariant } from "../api/products";
 import {
-  getAllBrands,
-  getAllDeviceModels,
-  getAllVariants,
-  updateBrand,
-  updateDeviceModel,
-  updateVariant,
-} from "../api/products";
+  fetchCatalogs,
+  selectBrands,
+  selectDeviceModels,
+  selectVariants,
+} from "../store/catalogSlice";
 
 export default function Admin() {
   const dispatch = useDispatch();
@@ -31,9 +30,9 @@ export default function Admin() {
   const usersStatus = useSelector(selectUsersStatus);
   const listings = useSelector(selectProducts);
   const listingsStatus = useSelector(selectProductsStatus);
-  const [brands, setBrands] = useState([]);
-  const [models, setModels] = useState([]);
-  const [variants, setVariants] = useState([]);
+  const brands = useSelector(selectBrands);
+  const models = useSelector(selectDeviceModels);
+  const variants = useSelector(selectVariants);
   const [listingEdits, setListingEdits] = useState({});
   const [brandEdits, setBrandEdits] = useState({});
   const [modelEdits, setModelEdits] = useState({});
@@ -43,6 +42,7 @@ export default function Admin() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const bootstrapped = useRef(false);
   const listingsBootstrapped = useRef(false);
+  const catalogBootstrapped = useRef(false);
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
@@ -63,20 +63,16 @@ export default function Admin() {
     if (!listingsBootstrapped.current && currentUser?.roles?.includes("ADMIN")) {
       listingsBootstrapped.current = true;
       dispatch(fetchListings({ page: 0, size: 100 }));
-      (async () => {
-        try {
-          const [brandsData, modelsData, variantsData] = await Promise.all([
-            getAllBrands(),
-            getAllDeviceModels(),
-            getAllVariants(),
-          ]);
-          setBrands(brandsData);
-          setModels(modelsData);
-          setVariants(variantsData);
-        } catch (err) {
-          console.error("Error cargando catálogos globales", err);
-        }
-      })();
+    }
+  }, [currentUser, dispatch]);
+
+  useEffect(() => {
+    if (
+      !catalogBootstrapped.current &&
+      currentUser?.roles?.includes("ADMIN")
+    ) {
+      catalogBootstrapped.current = true;
+      dispatch(fetchCatalogs());
     }
   }, [currentUser, dispatch]);
 
@@ -274,14 +270,22 @@ export default function Admin() {
     }
   };
 
+  const refreshCatalogs = async () => {
+    try {
+      await dispatch(fetchCatalogs({ force: true })).unwrap();
+    } catch (error) {
+      console.error("Error refrescando catalogos", error);
+    }
+  };
+
   const handleSaveBrand = async (brand) => {
     const edits = brandEdits[brand.id];
     if (!edits) return;
     try {
       const updated = await updateBrand(brand.id, { name: edits.name });
-      setBrands((prev) =>
-        prev.map((b) => (b.id === brand.id ? { ...b, ...updated } : b))
-      );
+      if (updated) {
+        await refreshCatalogs();
+      }
       showNotification("Marca actualizada correctamente", "success");
     } catch (error) {
       showNotification(error.message || "Error al actualizar la marca", "error");
@@ -296,9 +300,9 @@ export default function Admin() {
         modelName: edits.modelName,
         brandId: model.brandId,
       });
-      setModels((prev) =>
-        prev.map((m) => (m.id === model.id ? { ...m, ...updated } : m))
-      );
+      if (updated) {
+        await refreshCatalogs();
+      }
       showNotification("Modelo actualizado correctamente", "success");
     } catch (error) {
       showNotification(error.message || "Error al actualizar el modelo", "error");
@@ -317,9 +321,9 @@ export default function Admin() {
         condition: edits.condition ?? variant.condition ?? "NEW",
       };
       const updated = await updateVariant(variant.id, payload);
-      setVariants((prev) =>
-        prev.map((v) => (v.id === variant.id ? { ...v, ...updated } : v))
-      );
+      if (updated) {
+        await refreshCatalogs();
+      }
       showNotification("Variante actualizada correctamente", "success");
     } catch (error) {
       showNotification(error.message || "Error al actualizar la variante", "error");
@@ -433,7 +437,9 @@ export default function Admin() {
               </p>
             </div>
             <button
-              onClick={() => dispatch(fetchListings({ page: 0, size: 100 }))}
+              onClick={() =>
+                dispatch(fetchListings({ page: 0, size: 100, force: true }))
+              }
               className="px-4 py-2 rounded-lg border border-brand-dark/20 text-brand-dark hover:bg-brand-dark/10"
             >
               Actualizar publicaciones

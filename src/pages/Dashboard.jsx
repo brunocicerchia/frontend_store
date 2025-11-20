@@ -13,16 +13,19 @@ import EditListingModal from '../components/dashboard/EditListingModal';
 import ProductsTable from '../components/dashboard/ProductsTable';
 import { getMySeller, createSeller } from '../api/store';
 import {
-  getAllBrands,
-  getAllDeviceModels,
-  getAllVariants,
-  createVariant,
-  createDeviceModel,
-} from '../api/products';
+  fetchCatalogs,
+  selectBrands,
+  selectDeviceModels,
+  selectVariants,
+  selectCatalogStatus,
+  createDeviceModelThunk as createDeviceModelCatalogThunk,
+  createVariantThunk as createVariantCatalogThunk,
+} from '../store/catalogSlice';
 import {
   fetchListings,
   selectProducts,
   selectProductsStatus,
+  selectHasSellerListingsCache,
   createListingThunk,
   updateListingThunk,
   deleteListingThunk,
@@ -33,10 +36,12 @@ function Dashboard() {
   const dispatch = useDispatch();
   const listings = useSelector(selectProducts) || [];
   const productsStatus = useSelector(selectProductsStatus);
+  const hasSellerListingsCache = useSelector(selectHasSellerListingsCache);
+  const brands = useSelector(selectBrands);
+  const models = useSelector(selectDeviceModels);
+  const variants = useSelector(selectVariants);
+  const catalogStatus = useSelector(selectCatalogStatus);
   const bootstrapRef = useRef(false);
-  const [brands, setBrands] = useState([]);
-  const [models, setModels] = useState([]);
-  const [variants, setVariants] = useState([]);
   const [mySeller, setMySeller] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState(null);
@@ -119,27 +124,28 @@ function Dashboard() {
       setMySeller(sellerData);
       setNeedsStore(false);
       // Si tiene tienda, cargar todos los datos
-      await fetchAllData(true);
+      await fetchAllData();
     } catch (error) {
       setNeedsStore(true);
       setLoading(false);
     }
   };
 
-  const fetchAllData = async (forceListings = false) => {
+  const fetchAllData = async ({ forceSellerListings = false } = {}) => {
     try {
       setLoading(true);
-      if (forceListings || productsStatus === 'idle') {
-        await dispatch(fetchListings({ page: 0, size: 100 })).unwrap();
+      const shouldFetchListings =
+        forceSellerListings ||
+        productsStatus === 'idle' ||
+        !hasSellerListingsCache;
+
+      if (shouldFetchListings) {
+        const fetchArgs = { page: 0, size: 100 };
+        if (forceSellerListings) {
+          fetchArgs.force = true;
+        }
+        await dispatch(fetchListings(fetchArgs)).unwrap();
       }
-      const [brandsData, modelsData, variantsData] = await Promise.all([
-        getAllBrands(),
-        getAllDeviceModels(),
-        getAllVariants()
-      ]);
-      setBrands(brandsData);
-      setModels(modelsData);
-      setVariants(variantsData);
     } catch (error) {
       console.error('Error fetching data:', error);
       setNotification({
@@ -152,6 +158,29 @@ function Dashboard() {
   };
 
   // Handlers del creador
+  const ensureCatalogsLoaded = async () => {
+    if (
+      catalogStatus === 'idle' ||
+      catalogStatus === 'failed' ||
+      (brands.length === 0 && models.length === 0 && variants.length === 0)
+    ) {
+      try {
+        await dispatch(fetchCatalogs()).unwrap();
+      } catch (error) {
+        console.error('Error fetching catalogs:', error);
+        setNotification({
+          type: 'error',
+          message: 'Error al cargar catalogos: ' + error.message
+        });
+      }
+    }
+  };
+
+  const handleOpenCreator = async () => {
+    await ensureCatalogsLoaded();
+    setShowCreador(true);
+  };
+
   const handleStep1Next = async () => {
     try {
       if (!useExistingModel) {
@@ -160,10 +189,11 @@ function Dashboard() {
           brandId: parseInt(modelFormData.brandId),
           modelName: modelFormData.modelName,
         };
-        const newModel = await createDeviceModel(data);
+        const newModel = await dispatch(
+          createDeviceModelCatalogThunk(data)
+        ).unwrap();
         setSelectedModelId(newModel.id.toString());
         setVariantFormData({ ...variantFormData, deviceModelId: newModel.id });
-        await fetchAllData();
       } else if (!selectedModelId) {
         setNotification({
           type: 'warning',
@@ -191,9 +221,10 @@ function Dashboard() {
           color: variantFormData.color,
           condition: variantFormData.condition,
         };
-        const newVariant = await createVariant(data);
+        const newVariant = await dispatch(
+          createVariantCatalogThunk(data)
+        ).unwrap();
         setSelectedVariantId(newVariant.id.toString());
-        await fetchAllData();
       } else if (!selectedVariantId) {
         setNotification({
           type: 'warning',
@@ -318,7 +349,7 @@ function Dashboard() {
         type: 'success',
         message: '🎉 ¡Tienda creada exitosamente! Ahora puedes comenzar a vender.'
       });
-      await fetchAllData(true);
+      await fetchAllData({ forceSellerListings: true });
     } catch (error) {
       console.error('Error creating store:', error);
       setNotification({
@@ -384,7 +415,7 @@ function Dashboard() {
           <h1 className="text-4xl font-bold text-brand-light mb-4">Dashboard de Productos</h1>
           <div className="flex flex-wrap gap-4">
             <button
-              onClick={() => setShowCreador(true)}
+              onClick={handleOpenCreator}
               className="bg-brand-contrast text-brand-light px-8 py-4 rounded-lg font-bold text-lg hover:bg-brand-contrast-600 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1"
             >
               Crear Nuevo Producto

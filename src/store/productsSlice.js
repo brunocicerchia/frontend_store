@@ -2,6 +2,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import {
   getListings,
+  getEnrichedListing,
   createListing,
   updateListing,
   deleteListing,
@@ -16,6 +17,29 @@ export const fetchListings = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(err.message || "No se pudieron cargar los productos");
     }
+  },
+  {
+    condition: (args = {}, { getState }) => {
+      const { force = false, page = 0, size = 20 } = args || {};
+      if (force) return true;
+      const state = getState();
+      const productsState = state?.products;
+      if (!productsState) return true;
+      const pendingQuery = productsState.currentQuery;
+      const isSamePending =
+        productsState.status === "loading" &&
+        pendingQuery &&
+        pendingQuery.page === page &&
+        pendingQuery.size === size;
+      if (isSamePending) return false;
+      const lastQuery = productsState.lastQuery;
+      const alreadyLoadedSameQuery =
+        productsState.status === "succeeded" &&
+        lastQuery &&
+        lastQuery.page === page &&
+        lastQuery.size === size;
+      return !alreadyLoadedSameQuery;
+    },
   }
 );
 
@@ -23,7 +47,10 @@ export const createListingThunk = createAsyncThunk(
   "products/createListing",
   async (data, { rejectWithValue }) => {
     try {
-      return await createListing(data);
+      const created = await createListing(data);
+      if (!created?.id) return created;
+      const enriched = await getEnrichedListing(created.id).catch(() => null);
+      return enriched || created;
     } catch (err) {
       return rejectWithValue(err.message || "No se pudo crear el producto");
     }
@@ -62,6 +89,9 @@ const initialState = {
   error: null,
   mutationStatus: "idle",
   mutationError: null,
+  lastQuery: null,
+  currentQuery: null,
+  sellerViewHydrated: false,
 };
 
 const productsSlice = createSlice({
@@ -72,17 +102,24 @@ const productsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchListings.pending, (state) => {
+      .addCase(fetchListings.pending, (state, action) => {
         state.status = "loading";
         state.error = null;
+        const { page = 0, size = 20 } = action.meta.arg || {};
+        state.currentQuery = { page, size };
       })
       .addCase(fetchListings.fulfilled, (state, action) => {
         state.status = "succeeded";
+        state.currentQuery = null;
         state.items = action.payload || [];
         state.error = null;
+        const { page = 0, size = 20 } = action.meta.arg || {};
+        state.lastQuery = { page, size };
+        state.sellerViewHydrated = page === 0 && size >= 100;
       })
       .addCase(fetchListings.rejected, (state, action) => {
         state.status = "failed";
+        state.currentQuery = null;
         state.error = action.payload;
       })
       .addCase(createListingThunk.pending, (state) => {
@@ -146,9 +183,9 @@ export const { resetProducts } = productsSlice.actions;
 export const selectProducts = (state) => state.products.items;
 export const selectProductsStatus = (state) => state.products.status;
 export const selectProductsError = (state) => state.products.error;
-export const selectProductsMutationStatus = (state) =>
-  state.products.mutationStatus;
-export const selectProductsMutationError = (state) =>
-  state.products.mutationError;
+export const selectProductsMutationStatus = (state) => state.products.mutationStatus;
+export const selectProductsMutationError = (state) => state.products.mutationError;
+export const selectProductsLastQuery = (state) => state.products.lastQuery;
+export const selectHasSellerListingsCache = (state) => state.products.sellerViewHydrated;
 
 export default productsSlice.reducer;

@@ -30,7 +30,7 @@ function ProductList() {
 
   useEffect(() => {
     if (productsStatus === "idle") {
-      dispatch(fetchListings());
+      dispatch(fetchListings({ page: 0, size: 100 }));
     }
   }, [dispatch, productsStatus]);
 
