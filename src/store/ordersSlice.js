@@ -68,7 +68,33 @@ const ordersSlice = createSlice({
       })
       .addCase(checkoutFromCart.fulfilled, (state, action) => {
         state.checkoutStatus = "succeeded";
+        state.checkoutError = null;
         state.lastCreatedOrder = action.payload;
+
+        const newOrder = action.payload;
+        const existingContent = state.page?.content ?? [];
+        const pageSize = state.page?.size;
+        const updatedContent = [newOrder, ...existingContent];
+        const totalElements = (state.page?.totalElements ?? existingContent.length) + 1;
+        const limitedContent =
+          pageSize && updatedContent.length > pageSize
+            ? updatedContent.slice(0, pageSize)
+            : updatedContent;
+
+        state.page = {
+          ...(state.page || {}),
+          content: limitedContent,
+          number: state.page?.number ?? 0,
+          totalElements,
+          totalPages:
+            state.page?.totalPages ||
+            (pageSize ? Math.ceil(totalElements / pageSize) : 1),
+          size: pageSize,
+        };
+
+        // Mantener el estado de A3rdenes como cargado para no re-fetchear al abrir.
+        state.status = "succeeded";
+        state.error = null;
       })
       .addCase(checkoutFromCart.rejected, (state, action) => {
         state.checkoutStatus = "failed";

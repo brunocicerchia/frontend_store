@@ -18,15 +18,31 @@ export default function MyOrders() {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [requestedPageIndex, setRequestedPageIndex] = useState(0);
 
-  const didRequest = useRef(false);
+  // Evita doble fetch en modo Strict y reusar la data de la misma pagina.
+  const requestedPages = useRef(new Set());
+  const loadedPageNumber =
+    typeof page?.number === "number" ? page.number : 0;
 
   useEffect(() => {
-    if (didRequest.current && requestedPageIndex === currentPageIndex) {
+    const alreadyLoaded =
+      status === "succeeded" &&
+      page &&
+      loadedPageNumber === requestedPageIndex;
+
+    if (alreadyLoaded) {
+      setCurrentPageIndex(loadedPageNumber);
       return;
     }
-    didRequest.current = true;
+
+    if (requestedPages.current.has(requestedPageIndex)) {
+      return;
+    }
+
+    if (status === "loading") return;
+
+    requestedPages.current.add(requestedPageIndex);
     dispatch(fetchMyOrders({ page: requestedPageIndex, size: 20 }));
-  }, [dispatch, requestedPageIndex, currentPageIndex]);
+  }, [dispatch, loadedPageNumber, page, requestedPageIndex, status]);
 
   useEffect(() => {
     if (status === "succeeded") {
