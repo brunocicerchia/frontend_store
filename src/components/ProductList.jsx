@@ -27,6 +27,7 @@ function ProductList() {
   const [addingToCart, setAddingToCart] = useState(null);
   const [notification, setNotification] = useState(null);
   const [sortOrder, setSortOrder] = useState("default");
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     if (productsStatus === "idle") {
@@ -35,9 +36,21 @@ function ProductList() {
   }, [dispatch, productsStatus]);
 
   const getSortedListings = () => {
-    const listingsCopy = [...(products || [])].filter(
-      (listing) => listing?.active !== false
-    );
+    const term = searchTerm.trim().toLowerCase();
+    const listingsCopy = [...(products || [])]
+      .filter((listing) => listing?.active !== false)
+      .filter((listing) => {
+        if (!term) return true;
+        const haystack = [
+          listing.brand?.name,
+          listing.variant?.model?.modelName,
+          listing.variant?.color,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(term);
+      });
 
     if (sortOrder === "price-asc") {
       return listingsCopy.sort((a, b) => {
@@ -62,6 +75,26 @@ function ProductList() {
     listing.discountActive && listing.effectivePrice
       ? listing.effectivePrice
       : listing.price;
+
+  const fmtUSD = (value) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+    }).format(Number(value ?? 0));
+
+  const conditionBadge = (condition) => {
+    switch (condition) {
+      case "NEW":
+        return { label: "Nuevo", className: "bg-emerald-50 text-emerald-700 border border-emerald-200" };
+      case "REFURB":
+        return { label: "Reacondicionado", className: "bg-blue-50 text-blue-700 border border-blue-200" };
+      case "USED":
+        return { label: "Usado", className: "bg-amber-50 text-amber-700 border border-amber-200" };
+      default:
+        return { label: condition || "Estado", className: "bg-gray-100 text-gray-700 border border-gray-200" };
+    }
+  };
 
   const sortedListings = getSortedListings();
 
@@ -165,25 +198,56 @@ function ProductList() {
           </p>
         </div>
 
-        {/* Ordenamiento */}
-        <div className="flex items-center gap-2 text-xs sm:text-sm">
-          <span className="text-gray-400">Ordenar por</span>
-          <select
-            id="sort-select"
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-            className="
-              bg-white text-gray-800 border border-gray-300 
-              rounded-full px-4 py-2 text-sm shadow-sm 
-              hover:border-gray-400 
-              focus:outline-none focus:ring-2 focus:ring-[#1282A2] 
-              transition
-            "
-          >
-            <option value="default">Relevancia</option>
-            <option value="price-asc">Precio: menor a mayor</option>
-            <option value="price-desc">Precio: mayor a menor</option>
-          </select>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="relative w-full sm:w-72">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1010.5 18a7.5 7.5 0 006.15-3.35z" />
+              </svg>
+            </span>
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar por modelo, marca o color"
+              className="
+                w-full h-10 bg-white text-gray-900 border border-transparent 
+                rounded-full pl-10 pr-4 text-sm shadow-sm 
+                ring-1 ring-gray-200/80 
+                hover:ring-gray-300 
+                focus:outline-none focus:ring-2 focus:ring-[#1282A2] 
+                transition
+              "
+            />
+          </div>
+
+          {/* Ordenamiento */}
+          <div className="flex items-center gap-2 text-xs sm:text-sm">
+            <span className="text-gray-400">Ordenar por</span>
+            <select
+              id="sort-select"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="
+                h-10 bg-white text-gray-800 border border-gray-300 
+                rounded-full px-4 text-sm shadow-sm 
+                hover:border-gray-400 
+                focus:outline-none focus:ring-2 focus:ring-[#1282A2] 
+                transition
+              "
+            >
+              <option value="default">Relevancia</option>
+              <option value="price-asc">Precio: menor a mayor</option>
+              <option value="price-desc">Precio: mayor a menor</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -193,6 +257,7 @@ function ProductList() {
           const hasDiscount =
             listing.discountActive &&
             listing.effectivePrice < listing.price;
+          const conditionInfo = conditionBadge(listing.variant?.condition);
 
           return (
             <article
@@ -242,12 +307,16 @@ function ProductList() {
                   </span>
 
                   {listing.variant?.condition && (
-                    <span className="text-[11px] px-3 py-1 rounded-full bg-gray-100 text-gray-700">
-                      {listing.variant.condition === "NEW"
-                        ? "Nuevo"
-                        : listing.variant.condition === "REFURB"
-                        ? "Reacondicionado"
-                        : "Usado"}
+                    <span
+                      className={`text-[11px] px-3 py-1 rounded-full ${conditionInfo.className}`}
+                    >
+                      {conditionInfo.label}
+                    </span>
+                  )}
+
+                  {hasDiscount && (
+                    <span className="text-[11px] px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                      -{Math.round(100 - (listing.effectivePrice / listing.price) * 100)}%
                     </span>
                   )}
                 </div>
@@ -255,15 +324,11 @@ function ProductList() {
                 <div className="mb-5">
                   {hasDiscount && (
                     <p className="text-xs text-gray-400 line-through">
-                      ${listing.price.toFixed(2)}
+                      {fmtUSD(listing.price)}
                     </p>
                   )}
                   <p className="text-3xl font-semibold text-gray-900">
-                    $
-                    {(
-                      listing.effectivePrice ??
-                      listing.price
-                    ).toFixed(2)}
+                    {fmtUSD(listing.effectivePrice ?? listing.price)}
                   </p>
                 </div>
 

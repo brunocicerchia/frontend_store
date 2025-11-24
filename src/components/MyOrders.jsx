@@ -66,12 +66,34 @@ export default function MyOrders() {
     }
   };
 
+  const statusLabel = (s) => {
+    switch (s) {
+      case "PENDING_PAYMENT":
+        return "Pendiente de pago";
+      case "PAID":
+        return "Pagada";
+      case "FULFILLED":
+      case "FULLFILLED":
+        return "Completada";
+      case "CANCELLED":
+        return "Cancelada";
+      case "SHIPPED":
+        return "Enviada";
+      case "DELIVERED":
+        return "Entregada";
+      default:
+        return s ?? "Desconocido";
+    }
+  };
+
   const statusBadge = (s) => {
     const base = "inline-block px-2 py-0.5 rounded-full text-xs font-semibold";
     switch (s) {
       case "PENDING_PAYMENT":
         return `${base} bg-yellow-500/10 text-yellow-700`;
       case "PAID":
+      case "FULFILLED":
+      case "FULLFILLED":
         return `${base} bg-green-500/10 text-green-700`;
       case "CANCELLED":
         return `${base} bg-red-500/10 text-red-700`;
@@ -141,7 +163,7 @@ export default function MyOrders() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-3">
-                    <span className={statusBadge(o.status)}>{o.status}</span>
+                    <span className={statusBadge(o.status)}>{statusLabel(o.status)}</span>
                     <div className="text-sm text-brand-dark/70">
                       {fmtDate(o.createdAt)}
                     </div>

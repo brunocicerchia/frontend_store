@@ -23,7 +23,10 @@ export const checkoutFromCart = createAsyncThunk(
     try {
       const order = await checkoutMe();
       dispatch(clearCart());
-      return order;
+      return {
+        ...order,
+        status: order?.status || "PAID",
+      };
     } catch (err) {
       return rejectWithValue(err.message || "No se pudo procesar el checkout");
     }
@@ -69,9 +72,8 @@ const ordersSlice = createSlice({
       .addCase(checkoutFromCart.fulfilled, (state, action) => {
         state.checkoutStatus = "succeeded";
         state.checkoutError = null;
-        state.lastCreatedOrder = action.payload;
-
         const newOrder = action.payload;
+        state.lastCreatedOrder = newOrder;
         const existingContent = state.page?.content ?? [];
         const pageSize = state.page?.size;
         const updatedContent = [newOrder, ...existingContent];
