@@ -15,33 +15,22 @@ import {
   selectProductsStatus,
   deleteListingThunk,
   updateListingThunk,
-  updateBrandDetails,
-  updateDeviceModelDetails,
-  updateVariantDetails,
 } from "../store/productsSlice";
-import {
-  updateBrand,
-  updateDeviceModel,
-  updateVariant,
-  createBrand,
-  createDeviceModel as createDeviceModelApi,
-  createVariant as createVariantApi,
-  deleteBrand as deleteBrandApi,
-  deleteDeviceModel as deleteDeviceModelApi,
-  deleteVariant as deleteVariantApi,
-} from "../api/products";
 import {
   fetchCatalogs,
   selectBrands,
   selectDeviceModels,
   selectVariants,
   selectCatalogStatus,
-  upsertBrand,
-  upsertDeviceModel,
-  upsertVariant,
-  removeBrandCascade,
-  removeDeviceModelCascade,
-  removeVariantEntry,
+  deleteBrandThunk,
+  deleteDeviceModelThunk,
+  deleteVariantThunk,
+  createBrandThunk,
+  createDeviceModelThunk,
+  createVariantThunk,
+  updateBrandThunk,
+  updateDeviceModelThunk,
+  updateVariantThunk,
 } from "../store/catalogSlice";
 
 export default function Admin() {
@@ -114,17 +103,17 @@ export default function Admin() {
 
   useEffect(() => {
     if (!currentUser?.roles?.includes("ADMIN")) return;
-    if (listingsStatus === "idle") {
-      dispatch(fetchListings({ page: 0, size: 100 }));
-    }
-  }, [currentUser, dispatch, listingsStatus]);
+    if (activeTab !== "listings") return;
+    if (listingsStatus === "loading" || listingsStatus === "succeeded") return;
+    dispatch(fetchListings({ page: 0, size: 100 }));
+  }, [currentUser, dispatch, activeTab, listingsStatus]);
 
   useEffect(() => {
     if (!currentUser?.roles?.includes("ADMIN")) return;
-    if (catalogStatus === "idle" || catalogStatus === "failed") {
-      dispatch(fetchCatalogs());
-    }
-  }, [currentUser, dispatch, catalogStatus]);
+    if (activeTab !== "catalogs") return;
+    if (catalogStatus === "loading" || catalogStatus === "succeeded") return;
+    dispatch(fetchCatalogs());
+  }, [currentUser, dispatch, activeTab, catalogStatus]);
 
   useEffect(() => {
     setBrandEdits((prev) => {
@@ -183,40 +172,44 @@ export default function Admin() {
   }, [variants]);
 
   useEffect(() => {
-    if (!newModelData.brandId && brands.length > 0) {
-      setNewModelData((prev) => ({
-        ...prev,
-        brandId: String(brands[0].id),
-      }));
-    } else if (
-      newModelData.brandId &&
-      !brands.find((brand) => String(brand.id) === String(newModelData.brandId))
-    ) {
-      setNewModelData((prev) => ({
-        ...prev,
-        brandId: brands[0] ? String(brands[0].id) : "",
-      }));
+    if (brands.length === 0) {
+      setNewModelData((prev) => ({ ...prev, brandId: "" }));
+      return;
     }
-  }, [brands, newModelData.brandId]);
+
+    setNewModelData((prev) => {
+      if (!prev.brandId) {
+        return { ...prev, brandId: String(brands[0].id) };
+      }
+      const exists = brands.some(
+        (brand) => String(brand.id) === String(prev.brandId)
+      );
+      if (!exists) {
+        return { ...prev, brandId: "" };
+      }
+      return prev;
+    });
+  }, [brands]);
 
   useEffect(() => {
-    if (!newVariantData.deviceModelId && models.length > 0) {
-      setNewVariantData((prev) => ({
-        ...prev,
-        deviceModelId: String(models[0].id),
-      }));
-    } else if (
-      newVariantData.deviceModelId &&
-      !models.find(
-        (model) => String(model.id) === String(newVariantData.deviceModelId)
-      )
-    ) {
-      setNewVariantData((prev) => ({
-        ...prev,
-        deviceModelId: models[0] ? String(models[0].id) : "",
-      }));
+    if (models.length === 0) {
+      setNewVariantData((prev) => ({ ...prev, deviceModelId: "" }));
+      return;
     }
-  }, [models, newVariantData.deviceModelId]);
+
+    setNewVariantData((prev) => {
+      if (!prev.deviceModelId) {
+        return { ...prev, deviceModelId: String(models[0].id) };
+      }
+      const exists = models.some(
+        (model) => String(model.id) === String(prev.deviceModelId)
+      );
+      if (!exists) {
+        return { ...prev, deviceModelId: "" };
+      }
+      return prev;
+    });
+  }, [models]);
 
   useEffect(() => {
     setListingEdits((prev) => {
@@ -384,8 +377,7 @@ export default function Admin() {
       return;
     }
     try {
-      const created = await createBrand({ name });
-      dispatch(upsertBrand(created));
+      await dispatch(createBrandThunk({ name })).unwrap();
       setNewBrandName("");
       showNotification("Marca creada correctamente", "success");
     } catch (error) {
@@ -404,8 +396,7 @@ export default function Admin() {
         brandId: Number(newModelData.brandId),
         modelName: newModelData.modelName.trim(),
       };
-      const created = await createDeviceModelApi(payload);
-      dispatch(upsertDeviceModel(created));
+      await dispatch(createDeviceModelThunk(payload)).unwrap();
       setNewModelData((prev) => ({ ...prev, modelName: "" }));
       showNotification("Modelo creado correctamente", "success");
     } catch (error) {
@@ -432,8 +423,7 @@ export default function Admin() {
         color: newVariantData.color.trim(),
         condition: newVariantData.condition || "NEW",
       };
-      const created = await createVariantApi(payload);
-      dispatch(upsertVariant(created));
+      await dispatch(createVariantThunk(payload)).unwrap();
       setNewVariantData((prev) => ({
         ...prev,
         ram: "",
@@ -451,8 +441,7 @@ export default function Admin() {
       return;
     }
     try {
-      await deleteBrandApi(brand.id);
-      dispatch(removeBrandCascade(brand.id));
+      await dispatch(deleteBrandThunk(brand.id)).unwrap();
       showNotification("Marca eliminada correctamente", "success");
     } catch (error) {
       showNotification(error.message || "Error al eliminar la marca", "error");
@@ -468,8 +457,7 @@ export default function Admin() {
       return;
     }
     try {
-      await deleteDeviceModelApi(model.id);
-      dispatch(removeDeviceModelCascade(model.id));
+      await dispatch(deleteDeviceModelThunk(model.id)).unwrap();
       showNotification("Modelo eliminado correctamente", "success");
     } catch (error) {
       showNotification(error.message || "Error al eliminar el modelo", "error");
@@ -481,8 +469,7 @@ export default function Admin() {
       return;
     }
     try {
-      await deleteVariantApi(variant.id);
-      dispatch(removeVariantEntry(variant.id));
+      await dispatch(deleteVariantThunk(variant.id)).unwrap();
       showNotification("Variante eliminada correctamente", "success");
     } catch (error) {
       showNotification(error.message || "Error al eliminar la variante", "error");
@@ -493,11 +480,9 @@ export default function Admin() {
     const edits = brandEdits[brand.id];
     if (!edits) return;
     try {
-      const updated = await updateBrand(brand.id, { name: edits.name });
-      if (updated) {
-        dispatch(upsertBrand(updated));
-        dispatch(updateBrandDetails(updated));
-      }
+      const updated = await dispatch(
+        updateBrandThunk({ brandId: brand.id, data: { name: edits.name } })
+      ).unwrap();
       showNotification("Marca actualizada correctamente", "success");
     } catch (error) {
       showNotification(error.message || "Error al actualizar la marca", "error");
@@ -508,14 +493,15 @@ export default function Admin() {
     const edits = modelEdits[model.id];
     if (!edits) return;
     try {
-      const updated = await updateDeviceModel(model.id, {
-        modelName: edits.modelName,
-        brandId: model.brandId,
-      });
-      if (updated) {
-        dispatch(upsertDeviceModel(updated));
-        dispatch(updateDeviceModelDetails(updated));
-      }
+      const updated = await dispatch(
+        updateDeviceModelThunk({
+          modelId: model.id,
+          data: {
+            modelName: edits.modelName,
+            brandId: model.brandId,
+          },
+        })
+      ).unwrap();
       showNotification("Modelo actualizado correctamente", "success");
     } catch (error) {
       showNotification(error.message || "Error al actualizar el modelo", "error");
@@ -533,11 +519,9 @@ export default function Admin() {
         color: edits.color ?? variant.color ?? "",
         condition: edits.condition ?? variant.condition ?? "NEW",
       };
-      const updated = await updateVariant(variant.id, payload);
-      if (updated) {
-        dispatch(upsertVariant(updated));
-        dispatch(updateVariantDetails(updated));
-      }
+      const updated = await dispatch(
+        updateVariantThunk({ variantId: variant.id, data: payload })
+      ).unwrap();
       showNotification("Variante actualizada correctamente", "success");
     } catch (error) {
       showNotification(error.message || "Error al actualizar la variante", "error");

@@ -7,6 +7,11 @@ import {
   updateListing,
   deleteListing,
 } from "../api/products";
+import {
+  updateBrandThunk as catalogUpdateBrandThunk,
+  updateDeviceModelThunk as catalogUpdateDeviceModelThunk,
+  updateVariantThunk as catalogUpdateVariantThunk,
+} from "./catalogSlice";
 
 export const fetchListings = createAsyncThunk(
   "products/fetchListings",
@@ -99,77 +104,6 @@ const productsSlice = createSlice({
   initialState,
   reducers: {
     resetProducts: () => initialState,
-    updateBrandDetails: (state, action) => {
-      const brand = action.payload;
-      if (!brand?.id) return;
-      state.items = state.items.map((item) => {
-        let next = item;
-        if (item.brand && String(item.brand.id) === String(brand.id)) {
-          next = {
-            ...next,
-            brand: {
-              ...item.brand,
-              ...brand,
-            },
-          };
-        }
-        if (item.variant?.model && String(item.variant.model.brandId) === String(brand.id)) {
-          next = {
-            ...next,
-            variant: {
-              ...item.variant,
-              model: {
-                ...item.variant.model,
-                brandName: brand.name ?? item.variant.model.brandName,
-                brand,
-              },
-            },
-          };
-        }
-        return next;
-      });
-    },
-    updateDeviceModelDetails: (state, action) => {
-      const model = action.payload;
-      if (!model?.id) return;
-      state.items = state.items.map((item) => {
-        if (item.variant?.model && String(item.variant.model.id) === String(model.id)) {
-          return {
-            ...item,
-            variant: {
-              ...item.variant,
-              model: {
-                ...item.variant.model,
-                ...model,
-              },
-            },
-          };
-        }
-        return item;
-      });
-    },
-    updateVariantDetails: (state, action) => {
-      const variant = action.payload;
-      if (!variant?.id) return;
-      state.items = state.items.map((item) => {
-        if (String(item.variantId) === String(variant.id)) {
-          return {
-            ...item,
-            variant: {
-              ...item.variant,
-              ...variant,
-              model: variant.model
-                ? {
-                    ...item.variant?.model,
-                    ...variant.model,
-                  }
-                : item.variant?.model,
-            },
-          };
-        }
-        return item;
-      });
-    },
   },
   extraReducers: (builder) => {
     builder
@@ -245,15 +179,84 @@ const productsSlice = createSlice({
       .addCase(deleteListingThunk.rejected, (state, action) => {
         state.mutationStatus = "failed";
         state.mutationError = action.payload;
+      })
+      // Mantener listings en sync cuando se actualizan catálogos
+      .addCase(catalogUpdateBrandThunk.fulfilled, (state, action) => {
+        const brand = action.payload;
+        if (!brand?.id) return;
+        state.items = state.items.map((item) => {
+          let next = item;
+          if (item.brand && String(item.brand.id) === String(brand.id)) {
+            next = {
+              ...next,
+              brand: {
+                ...item.brand,
+                ...brand,
+              },
+            };
+          }
+          if (item.variant?.model && String(item.variant.model.brandId) === String(brand.id)) {
+            next = {
+              ...next,
+              variant: {
+                ...item.variant,
+                model: {
+                  ...item.variant.model,
+                  brandName: brand.name ?? item.variant.model.brandName,
+                  brand,
+                },
+              },
+            };
+          }
+          return next;
+        });
+      })
+      .addCase(catalogUpdateDeviceModelThunk.fulfilled, (state, action) => {
+        const model = action.payload;
+        if (!model?.id) return;
+        state.items = state.items.map((item) => {
+          if (item.variant?.model && String(item.variant.model.id) === String(model.id)) {
+            return {
+              ...item,
+              variant: {
+                ...item.variant,
+                model: {
+                  ...item.variant.model,
+                  ...model,
+                },
+              },
+            };
+          }
+          return item;
+        });
+      })
+      .addCase(catalogUpdateVariantThunk.fulfilled, (state, action) => {
+        const variant = action.payload;
+        if (!variant?.id) return;
+        state.items = state.items.map((item) => {
+          if (String(item.variantId) === String(variant.id)) {
+            return {
+              ...item,
+              variant: {
+                ...item.variant,
+                ...variant,
+                model: variant.model
+                  ? {
+                      ...item.variant?.model,
+                      ...variant.model,
+                    }
+                  : item.variant?.model,
+              },
+            };
+          }
+          return item;
+        });
       });
   },
 });
 
 export const {
   resetProducts,
-  updateBrandDetails,
-  updateDeviceModelDetails,
-  updateVariantDetails,
 } = productsSlice.actions;
 
 export const selectProducts = (state) => state.products.items;

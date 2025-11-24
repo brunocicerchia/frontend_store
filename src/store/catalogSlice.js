@@ -4,8 +4,15 @@ import {
   getAllBrands,
   getAllDeviceModels,
   getAllVariants,
+  createBrand,
   createDeviceModel,
   createVariant,
+  deleteBrand,
+  deleteDeviceModel,
+  deleteVariant,
+  updateBrand,
+  updateDeviceModel,
+  updateVariant,
 } from "../api/products";
 
 const normalizeModel = (model, brandMap) => ({
@@ -65,6 +72,86 @@ export const createVariantThunk = createAsyncThunk(
   }
 );
 
+export const createBrandThunk = createAsyncThunk(
+  "catalog/createBrand",
+  async (data, { rejectWithValue }) => {
+    try {
+      return await createBrand(data);
+    } catch (err) {
+      return rejectWithValue(err.message || "No se pudo crear la marca");
+    }
+  }
+);
+
+export const updateBrandThunk = createAsyncThunk(
+  "catalog/updateBrand",
+  async ({ brandId, data }, { rejectWithValue }) => {
+    try {
+      return await updateBrand(brandId, data);
+    } catch (err) {
+      return rejectWithValue(err.message || "No se pudo actualizar la marca");
+    }
+  }
+);
+
+export const updateDeviceModelThunk = createAsyncThunk(
+  "catalog/updateDeviceModel",
+  async ({ modelId, data }, { rejectWithValue }) => {
+    try {
+      return await updateDeviceModel(modelId, data);
+    } catch (err) {
+      return rejectWithValue(err.message || "No se pudo actualizar el modelo");
+    }
+  }
+);
+
+export const updateVariantThunk = createAsyncThunk(
+  "catalog/updateVariant",
+  async ({ variantId, data }, { rejectWithValue }) => {
+    try {
+      return await updateVariant(variantId, data);
+    } catch (err) {
+      return rejectWithValue(err.message || "No se pudo actualizar la variante");
+    }
+  }
+);
+
+export const deleteBrandThunk = createAsyncThunk(
+  "catalog/deleteBrand",
+  async (brandId, { rejectWithValue }) => {
+    try {
+      await deleteBrand(brandId);
+      return brandId;
+    } catch (err) {
+      return rejectWithValue(err.message || "No se pudo eliminar la marca");
+    }
+  }
+);
+
+export const deleteDeviceModelThunk = createAsyncThunk(
+  "catalog/deleteDeviceModel",
+  async (modelId, { rejectWithValue }) => {
+    try {
+      await deleteDeviceModel(modelId);
+      return modelId;
+    } catch (err) {
+      return rejectWithValue(err.message || "No se pudo eliminar el modelo");
+    }
+  }
+);
+
+export const deleteVariantThunk = createAsyncThunk(
+  "catalog/deleteVariant",
+  async (variantId, { rejectWithValue }) => {
+    try {
+      await deleteVariant(variantId);
+      return variantId;
+    } catch (err) {
+      return rejectWithValue(err.message || "No se pudo eliminar la variante");
+    }
+  }
+);
+
 const initialState = {
   brands: [],
   deviceModels: [],
@@ -118,6 +205,18 @@ const catalogSlice = createSlice({
         };
       } else {
         state.deviceModels = [normalized, ...state.deviceModels];
+      }
+      // Propagar nuevo nombre de modelo a las variantes que lo referencian
+      if (normalized.modelName) {
+        state.variants = state.variants.map((variant) =>
+          String(variant.deviceModelId) === String(normalized.id)
+            ? {
+                ...variant,
+                deviceModelName:
+                  normalized.modelName ?? variant.deviceModelName,
+              }
+            : variant
+        );
       }
     },
     upsertVariant: (state, action) => {
@@ -212,6 +311,98 @@ const catalogSlice = createSlice({
         }
       })
       .addCase(createVariantThunk.rejected, (state, action) => {
+        state.mutationStatus = "failed";
+        state.mutationError = action.payload;
+      })
+      .addCase(createBrandThunk.pending, (state) => {
+        state.mutationStatus = "loading";
+        state.mutationError = null;
+      })
+      .addCase(createBrandThunk.fulfilled, (state, action) => {
+        state.mutationStatus = "succeeded";
+        if (action.payload) {
+          catalogSlice.caseReducers.upsertBrand(state, action);
+        }
+      })
+      .addCase(createBrandThunk.rejected, (state, action) => {
+        state.mutationStatus = "failed";
+        state.mutationError = action.payload;
+      })
+      .addCase(updateBrandThunk.pending, (state) => {
+        state.mutationStatus = "loading";
+        state.mutationError = null;
+      })
+      .addCase(updateBrandThunk.fulfilled, (state, action) => {
+        state.mutationStatus = "succeeded";
+        if (action.payload) {
+          catalogSlice.caseReducers.upsertBrand(state, action);
+        }
+      })
+      .addCase(updateBrandThunk.rejected, (state, action) => {
+        state.mutationStatus = "failed";
+        state.mutationError = action.payload;
+      })
+      .addCase(updateDeviceModelThunk.pending, (state) => {
+        state.mutationStatus = "loading";
+        state.mutationError = null;
+      })
+      .addCase(updateDeviceModelThunk.fulfilled, (state, action) => {
+        state.mutationStatus = "succeeded";
+        if (action.payload) {
+          catalogSlice.caseReducers.upsertDeviceModel(state, action);
+        }
+      })
+      .addCase(updateDeviceModelThunk.rejected, (state, action) => {
+        state.mutationStatus = "failed";
+        state.mutationError = action.payload;
+      })
+      .addCase(updateVariantThunk.pending, (state) => {
+        state.mutationStatus = "loading";
+        state.mutationError = null;
+      })
+      .addCase(updateVariantThunk.fulfilled, (state, action) => {
+        state.mutationStatus = "succeeded";
+        if (action.payload) {
+          catalogSlice.caseReducers.upsertVariant(state, action);
+        }
+      })
+      .addCase(updateVariantThunk.rejected, (state, action) => {
+        state.mutationStatus = "failed";
+        state.mutationError = action.payload;
+      })
+      .addCase(deleteBrandThunk.pending, (state) => {
+        state.mutationStatus = "loading";
+        state.mutationError = null;
+      })
+      .addCase(deleteBrandThunk.fulfilled, (state, action) => {
+        state.mutationStatus = "succeeded";
+        catalogSlice.caseReducers.removeBrandCascade(state, action);
+      })
+      .addCase(deleteBrandThunk.rejected, (state, action) => {
+        state.mutationStatus = "failed";
+        state.mutationError = action.payload;
+      })
+      .addCase(deleteDeviceModelThunk.pending, (state) => {
+        state.mutationStatus = "loading";
+        state.mutationError = null;
+      })
+      .addCase(deleteDeviceModelThunk.fulfilled, (state, action) => {
+        state.mutationStatus = "succeeded";
+        catalogSlice.caseReducers.removeDeviceModelCascade(state, action);
+      })
+      .addCase(deleteDeviceModelThunk.rejected, (state, action) => {
+        state.mutationStatus = "failed";
+        state.mutationError = action.payload;
+      })
+      .addCase(deleteVariantThunk.pending, (state) => {
+        state.mutationStatus = "loading";
+        state.mutationError = null;
+      })
+      .addCase(deleteVariantThunk.fulfilled, (state, action) => {
+        state.mutationStatus = "succeeded";
+        catalogSlice.caseReducers.removeVariantEntry(state, action);
+      })
+      .addCase(deleteVariantThunk.rejected, (state, action) => {
         state.mutationStatus = "failed";
         state.mutationError = action.payload;
       });
