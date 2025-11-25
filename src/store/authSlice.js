@@ -12,7 +12,6 @@ export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async ({ email, password }, { rejectWithValue }) => {
     try {
-      // Login
       const res = await fetch(API_LOGIN_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -35,7 +34,6 @@ export const loginUser = createAsyncThunk(
         return rejectWithValue('La API no devolvió access_token');
       }
 
-      // /me
       let me = null;
       try {
         const meRes = await fetch(API_ME_URL, {
@@ -45,7 +43,6 @@ export const loginUser = createAsyncThunk(
           me = await meRes.json();
         }
       } catch {
-        // si falla, igual seguimos con token
       }
 
       return { user: me, token };
@@ -137,7 +134,6 @@ const authSlice = createSlice({
         state.user = user || null;
         state.token = token || null;
 
-        // Persistencia sencilla en localStorage
         if (token) {
           localStorage.setItem('jwt', token);
         } else {

@@ -3,7 +3,6 @@ import { authFetch } from "../lib/auth";
 
 const BASE = "http://localhost:8080";
 
-// Obtener imágenes de una variante
 export async function getVariantImages(variantId) {
   const res = await authFetch(`${BASE}/variants/${variantId}/images`);
   if (!res.ok) {
@@ -13,7 +12,6 @@ export async function getVariantImages(variantId) {
   return res.json();
 }
 
-// Subir imagen
 export async function uploadImage(variantId, file, asPrimary = false) {
   const formData = new FormData();
   formData.append("file", file);
@@ -34,7 +32,6 @@ export async function uploadImage(variantId, file, asPrimary = false) {
   return res.json();
 }
 
-// Eliminar imagen
 export async function deleteImage(variantId, imageId) {
   const res = await authFetch(`${BASE}/variants/${variantId}/images/${imageId}`, {
     method: "DELETE",
@@ -47,7 +44,6 @@ export async function deleteImage(variantId, imageId) {
   return true;
 }
 
-// Establecer imagen como principal
 export async function setPrimaryImage(variantId, imageId) {
   const res = await authFetch(`${BASE}/variants/${variantId}/images/${imageId}/primary`, {
     method: "PUT",
@@ -60,7 +56,6 @@ export async function setPrimaryImage(variantId, imageId) {
   return res.json();
 }
 
-// Obtener imagen como Blob (para mostrarla)
 export async function getImageBlob(variantId, imageId) {
   const res = await authFetch(`${BASE}/variants/${variantId}/images/${imageId}/bytes`);
   

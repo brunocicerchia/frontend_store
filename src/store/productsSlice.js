@@ -202,7 +202,6 @@ const productsSlice = createSlice({
           };
         });
       })
-      // Mantener listings en sync cuando se actualizan catálogos
       .addCase(catalogUpdateBrandThunk.fulfilled, (state, action) => {
         const brand = action.payload;
         if (!brand?.id) return;

@@ -1,4 +1,3 @@
-// src/store/catalogSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import {
   getAllBrands,
@@ -206,7 +205,6 @@ const catalogSlice = createSlice({
       } else {
         state.deviceModels = [normalized, ...state.deviceModels];
       }
-      // Propagar nuevo nombre de modelo a las variantes que lo referencian
       if (normalized.modelName) {
         state.variants = state.variants.map((variant) =>
           String(variant.deviceModelId) === String(normalized.id)

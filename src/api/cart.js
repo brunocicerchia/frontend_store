@@ -6,7 +6,7 @@ const BASE = "http://localhost:8080/carts";
 export async function getMyCart() {
   const res = await authFetch(`${BASE}/me`);
   if (!res.ok) throw new Error("No se pudo obtener el carrito");
-  return res.json(); // { cartId, items:[...], total }
+  return res.json(); 
 }
 
 export async function addItemMe(listingId, quantity = 1) {
@@ -21,7 +21,6 @@ export async function addItemMe(listingId, quantity = 1) {
     try {
       const text = await res.text();
       if (text) {
-        // Intenta parsear como JSON primero
         try {
           const json = JSON.parse(text);
           errorMsg = json.message || json.error || text;

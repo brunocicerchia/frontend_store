@@ -3,7 +3,6 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { getMyOrders, checkoutMe } from "../api/order";
 import { clearCart } from "./cartSlice";
 
-// LISTAR ÓRDENES DEL USUARIO
 export const fetchMyOrders = createAsyncThunk(
   "orders/fetchMyOrders",
   async ({ page = 0, size = 20 } = {}, { rejectWithValue }) => {
@@ -16,7 +15,6 @@ export const fetchMyOrders = createAsyncThunk(
   }
 );
 
-// CHECKOUT: CREAR ORDEN DESDE EL CARRITO
 export const checkoutFromCart = createAsyncThunk(
   "orders/checkoutFromCart",
   async (_, { dispatch, rejectWithValue }) => {
@@ -74,7 +72,6 @@ const ordersSlice = createSlice({
         state.checkoutError = null;
         const newOrder = action.payload;
         state.lastCreatedOrder = newOrder;
-        // Forzar refresco completo al abrir órdenes
         state.page = null;
         state.status = "idle";
         state.error = null;

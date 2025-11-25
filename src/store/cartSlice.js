@@ -1,8 +1,6 @@
-// src/store/cartSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { getUser } from "../lib/auth";
 
-// 👇 IMPORTS CORRECTOS SEGÚN TU src/api/cart.js
 import {
   getMyCart,
   addItemMe,
@@ -11,18 +9,16 @@ import {
   clearMyCart,
 } from "../api/cart";
 
-// 🧠 Cargar carrito del usuario logueado
 export const fetchCart = createAsyncThunk(
   "cart/fetchCart",
   async (_, { rejectWithValue }) => {
     try {
       const user = getUser();
       if (!user) {
-        // si no hay user, consideramos carrito vacío
         return null;
       }
       const cart = await getMyCart();
-      return cart; // { cartId, items:[...], total }
+      return cart; 
     } catch (err) {
       return rejectWithValue(err.message || "No se pudo cargar el carrito");
     }
@@ -37,7 +33,7 @@ export const addItemToCart = createAsyncThunk(
   }
 );
 
-// 🧠 Cambiar cantidad de un ítem (listingId en tu API)
+
 export const changeItemQuantity = createAsyncThunk(
   "cart/changeItemQuantity",
   async ({ listingId, quantity }, { rejectWithValue }) => {
@@ -50,7 +46,7 @@ export const changeItemQuantity = createAsyncThunk(
   }
 );
 
-// 🧠 Eliminar un ítem del carrito (listingId en tu API)
+
 export const removeItemFromCart = createAsyncThunk(
   "cart/removeItemFromCart",
   async ({ listingId }, { rejectWithValue }) => {
@@ -63,12 +59,11 @@ export const removeItemFromCart = createAsyncThunk(
   }
 );
 
-// 🧠 Vaciar carrito
 export const clearCart = createAsyncThunk(
   "cart/clearCart",
   async (_, { rejectWithValue }) => {
     try {
-      const cart = await clearMyCart(); // devuelve carrito vacío / nuevo
+      const cart = await clearMyCart(); 
       return cart;
     } catch (err) {
       return rejectWithValue(err.message || "No se pudo vaciar el carrito");
@@ -77,8 +72,8 @@ export const clearCart = createAsyncThunk(
 );
 
 const initialState = {
-  cart: null,      // { cartId, items, total }
-  status: "idle",  // 'idle' | 'loading' | 'succeeded' | 'failed'
+  cart: null,      
+  status: "idle",  
   error: null,
 };
 
@@ -93,7 +88,6 @@ const cartSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    // helper para no repetir tanto
     const pendingReducer = (state) => {
       state.status = "loading";
       state.error = null;
@@ -168,13 +162,11 @@ const cartSlice = createSlice({
 
 export const { resetCart } = cartSlice.actions;
 
-// 🔍 Selectores
 export const selectCartState = (state) => state.cart;
 export const selectCart = (state) => state.cart.cart;
 export const selectCartStatus = (state) => state.cart.status;
 export const selectCartError = (state) => state.cart.error;
 
-// Contador de ítems (asumiendo cart.items = [{ quantity, ... }])
 export const selectCartItemCount = (state) => {
   const cart = state.cart.cart;
   if (!cart || !Array.isArray(cart.items)) return 0;
