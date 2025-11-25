@@ -74,28 +74,9 @@ const ordersSlice = createSlice({
         state.checkoutError = null;
         const newOrder = action.payload;
         state.lastCreatedOrder = newOrder;
-        const existingContent = state.page?.content ?? [];
-        const pageSize = state.page?.size;
-        const updatedContent = [newOrder, ...existingContent];
-        const totalElements = (state.page?.totalElements ?? existingContent.length) + 1;
-        const limitedContent =
-          pageSize && updatedContent.length > pageSize
-            ? updatedContent.slice(0, pageSize)
-            : updatedContent;
-
-        state.page = {
-          ...(state.page || {}),
-          content: limitedContent,
-          number: state.page?.number ?? 0,
-          totalElements,
-          totalPages:
-            state.page?.totalPages ||
-            (pageSize ? Math.ceil(totalElements / pageSize) : 1),
-          size: pageSize,
-        };
-
-        // Mantener el estado de A3rdenes como cargado para no re-fetchear al abrir.
-        state.status = "succeeded";
+        // Forzar refresco completo al abrir órdenes
+        state.page = null;
+        state.status = "idle";
         state.error = null;
       })
       .addCase(checkoutFromCart.rejected, (state, action) => {

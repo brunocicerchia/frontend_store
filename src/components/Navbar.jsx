@@ -1,5 +1,5 @@
 // src/components/Navbar.jsx
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -10,6 +10,7 @@ import {
 import {
   fetchCart,
   selectCartItemCount,
+  selectCartStatus,
 } from "../store/cartSlice";
 
 function Navbar() {
@@ -17,14 +18,15 @@ function Navbar() {
   const isAuth = useSelector(selectIsAuthenticated);
   const user = useSelector(selectCurrentUser);
   const cartItemCount = useSelector(selectCartItemCount);
+  const cartStatus = useSelector(selectCartStatus);
 
   const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    if (isAuth) {
+  const handleCartClick = () => {
+    if (isAuth && (cartStatus === "idle" || cartStatus === "failed")) {
       dispatch(fetchCart());
     }
-  }, [dispatch, isAuth]);
+  };
   
   return (
   <nav className="bg-brand-light shadow-md sticky top-0 z-50 border-b border-brand-dark/10">
@@ -59,6 +61,7 @@ function Navbar() {
           <li>
             <Link
               to="/carrito"
+              onClick={handleCartClick}
               className="relative text-brand-dark px-3 lg:px-4 py-2 rounded-md font-medium hover:bg-brand-dark/10 transition-all duration-200 hover:-translate-y-0.5 inline-flex items-center"
               title="Carrito de compras"
             >

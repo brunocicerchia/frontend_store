@@ -8,6 +8,7 @@ import Notification from "./Notification";
 
 import { addItemToCart } from "../store/cartSlice";
 import { selectIsAuthenticated } from "../store/authSlice";
+import { selectCartStatus, fetchCart } from "../store/cartSlice";
 import {
   fetchListings,
   selectProducts,
@@ -20,6 +21,7 @@ function ProductList() {
   const dispatch = useDispatch();
 
   const isAuth = useSelector(selectIsAuthenticated);
+  const cartStatus = useSelector(selectCartStatus);
   const products = useSelector(selectProducts);
   const productsStatus = useSelector(selectProductsStatus);
   const productsError = useSelector(selectProductsError);
@@ -112,6 +114,9 @@ function ProductList() {
 
     try {
       setAddingToCart(listingId);
+      if (cartStatus === "idle" || cartStatus === "failed") {
+        await dispatch(fetchCart()).catch(() => {});
+      }
       await dispatch(addItemToCart({ listingId, quantity: 1 })).unwrap();
       setNotification({
         type: "success",

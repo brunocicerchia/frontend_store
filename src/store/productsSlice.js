@@ -7,6 +7,7 @@ import {
   updateListing,
   deleteListing,
 } from "../api/products";
+import { checkoutFromCart } from "./ordersSlice";
 import {
   updateBrandThunk as catalogUpdateBrandThunk,
   updateDeviceModelThunk as catalogUpdateDeviceModelThunk,
@@ -179,6 +180,27 @@ const productsSlice = createSlice({
       .addCase(deleteListingThunk.rejected, (state, action) => {
         state.mutationStatus = "failed";
         state.mutationError = action.payload;
+      })
+      .addCase(checkoutFromCart.fulfilled, (state, action) => {
+        const items = action.payload?.items;
+        if (!Array.isArray(items)) return;
+        const deltaMap = new Map();
+        items.forEach((item) => {
+          const id = item.listingId ?? item.id;
+          const qty = Number(item.quantity ?? 0);
+          if (!id || !qty) return;
+          deltaMap.set(String(id), (deltaMap.get(String(id)) || 0) + qty);
+        });
+        if (deltaMap.size === 0) return;
+        state.items = state.items.map((listing) => {
+          const delta = deltaMap.get(String(listing.id));
+          if (!delta) return listing;
+          const currentStock = Number(listing.stock ?? 0);
+          return {
+            ...listing,
+            stock: Math.max(0, currentStock - delta),
+          };
+        });
       })
       // Mantener listings en sync cuando se actualizan catálogos
       .addCase(catalogUpdateBrandThunk.fulfilled, (state, action) => {
