@@ -1,7 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Navigate } from "react-router-dom";
 import Notification from "../components/Notification";
 import { useDispatch, useSelector } from "react-redux";
+import {
+  selectCurrentUser,
+  selectIsAuthenticated,
+} from "../store/authSlice";
 import {
   fetchUsers,
   selectUsers,
@@ -43,6 +47,8 @@ export default function Admin() {
   const models = useSelector(selectDeviceModels);
   const variants = useSelector(selectVariants);
   const catalogStatus = useSelector(selectCatalogStatus);
+  const currentUser = useSelector(selectCurrentUser);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
 
   const [listingEdits, setListingEdits] = useState({});
   const [brandEdits, setBrandEdits] = useState({});
@@ -60,15 +66,14 @@ export default function Admin() {
     color: "",
     condition: "NEW",
   });
-  const [currentUser, setCurrentUser] = useState(null);
   const [notification, setNotification] = useState({
     show: false,
     message: "",
     type: "success",
   });
-  const [checkingAuth, setCheckingAuth] = useState(true);
 
   const [activeTab, setActiveTab] = useState("users"); // "users" | "listings" | "catalogs"
+  const usersFetchedRef = useRef(false);
 
   const brandMap = useMemo(() => {
     const map = new Map();
@@ -87,16 +92,10 @@ export default function Admin() {
   }, [models]);
 
   useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      setCurrentUser(JSON.parse(userData));
-    }
-    setCheckingAuth(false);
-  }, []);
-
-  useEffect(() => {
     if (!currentUser?.roles?.includes("ADMIN")) return;
+    if (usersFetchedRef.current && usersStatus !== "failed") return;
     if (usersStatus === "idle" || usersStatus === "failed") {
+      usersFetchedRef.current = true; // avoid double fetch in StrictMode
       dispatch(fetchUsers());
     }
   }, [currentUser, dispatch, usersStatus]);
@@ -266,15 +265,7 @@ export default function Admin() {
     setNotification({ show: false, message: "", type: "success" });
   };
 
-  if (checkingAuth) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-contrast"></div>
-      </div>
-    );
-  }
-
-  if (!currentUser) {
+  if (!isAuthenticated || !currentUser) {
     return <Navigate to="/login" replace />;
   }
 

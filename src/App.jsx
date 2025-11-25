@@ -14,7 +14,6 @@ import Contacto from './pages/Contacto';
 import './App.css';
 import LoginPageComp from "./components/LoginPageComp";
 import RegisterPage from "./pages/RegisterPage";
-import { getToken, getUser } from "./lib/auth"; 
 import MyOrders from "./components/MyOrders";
 import Cuenta from "./pages/Account";
 import Admin from "./pages/Admin";

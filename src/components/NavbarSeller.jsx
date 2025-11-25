@@ -1,11 +1,12 @@
 // src/components/NavbarSeller.jsx
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getUser } from "../lib/auth";
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '../store/authSlice';
 
 function NavbarSeller() {
   const [isOpen, setIsOpen] = useState(false);
-  const user = getUser();
+  const user = useSelector(selectCurrentUser);
   
   return (
   <nav className="bg-brand-light shadow-md sticky top-0 z-50 border-b border-brand-dark/10">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { getMe } from '../api/user';
+import { selectCurrentUser, selectIsAuthenticated } from '../store/authSlice';
 import Notification from '../components/Notification';
 import CreateStoreForm from '../components/dashboard/CreateStoreForm';
 import SellerHeader from '../components/dashboard/SellerHeader';
@@ -41,12 +41,13 @@ function Dashboard() {
   const models = useSelector(selectDeviceModels);
   const variants = useSelector(selectVariants);
   const catalogStatus = useSelector(selectCatalogStatus);
+  const currentUser = useSelector(selectCurrentUser);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
   const bootstrapRef = useRef(false);
   const [mySeller, setMySeller] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState(null);
   const [needsStore, setNeedsStore] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
 
   // Creador de productos state
   const [showCreador, setShowCreador] = useState(false);
@@ -83,40 +84,25 @@ function Dashboard() {
     : [];
 
   useEffect(() => {
+    if (!isAuthenticated || !currentUser) return;
     if (bootstrapRef.current) return;
     bootstrapRef.current = true;
-    (async () => {
-      try {
-        const userData = await getMe();
-        
-        setCurrentUser(userData);
-        
-        const hasAccess = userData && userData.roles && (
-          userData.roles.includes('SELLER') || 
-          userData.roles.includes('ADMIN')
-        );
-        
-        if (!hasAccess) {
-          setNotification({
-            type: 'error',
-            message: 'Acceso denegado. Solo vendedores y administradores pueden acceder a esta página.'
-          });
-          setTimeout(() => navigate('/'), 2000);
-          return;
-        }
-        
-        // Verificar si el seller necesita crear su tienda
-        await checkSellerStore();
-      } catch (error) {
-        console.error('❌ Error obteniendo usuario:', error);
-        setNotification({
-          type: 'error',
-          message: 'Error al verificar permisos. Por favor, inicia sesión nuevamente.'
-        });
-        setTimeout(() => navigate('/login'), 2000);
-      }
-    })();
-  }, []);
+
+    const hasAccess =
+      currentUser.roles &&
+      (currentUser.roles.includes('SELLER') || currentUser.roles.includes('ADMIN'));
+
+    if (!hasAccess) {
+      setNotification({
+        type: 'error',
+        message: 'Acceso denegado. Solo vendedores y administradores pueden acceder a esta pagina.'
+      });
+      setTimeout(() => navigate('/'), 2000);
+      return;
+    }
+
+    checkSellerStore();
+  }, [isAuthenticated, currentUser, navigate]);
 
   const checkSellerStore = async () => {
     try {

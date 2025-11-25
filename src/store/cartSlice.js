@@ -1,5 +1,4 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { getUser } from "../lib/auth";
 
 import {
   getMyCart,
@@ -11,10 +10,12 @@ import {
 
 export const fetchCart = createAsyncThunk(
   "cart/fetchCart",
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, getState }) => {
     try {
-      const user = getUser();
-      if (!user) {
+      const state = getState();
+      const user = state?.auth?.user;
+      const token = state?.auth?.token;
+      if (!user || !token) {
         return null;
       }
       const cart = await getMyCart();
